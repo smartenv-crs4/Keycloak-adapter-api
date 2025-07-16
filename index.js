@@ -14,9 +14,9 @@ exports.configure=function(app,keyCloackConfig,keyCloackOptions){
             const memoryStore = new session.MemoryStore();
             app.use(
                 session({
-                    secret: keyCloackOptions.store.secret || 'mySecret',
-                    resave: keyCloackOptions.store.resave || false,
-                    saveUninitialized: keyCloackOptions.store.saveUninitialized || true,
+                    secret: keyCloackOptions.session.secret || 'mySecret',
+                    resave: keyCloackOptions.session.resave || false,
+                    saveUninitialized: keyCloackOptions.session.saveUninitialized || true,
                     store: memoryStore,
                 })
             );

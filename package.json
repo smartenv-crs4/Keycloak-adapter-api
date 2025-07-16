@@ -1,7 +1,7 @@
 {
-  "name": "keyclock-adapter-and-api",
-  "version": "1.0.1",
-  "description": "This module deals with the management of Keyclock features to handle Users and application login and API tokens to protect your API's",
+  "name": "keycloak-adapter-api",
+  "version": "1.0.0",
+  "description": "Adapter API to integrate Node.js (Express) applications with Keycloak. Provides middleware for authentication, authorization, token validation, and route protection via OpenID Connect.",
   "main": "index.js",
   "scripts": {
     "test": "mocha"
@@ -23,7 +23,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/smartenv-crs4/keycloack-adapter-api.git"
+    "url": "git+https://github.com/smartenv-crs4/Keycloak-adapter-api.git"
   },
   "keywords": [
     "keycloack",
@@ -38,7 +38,7 @@
   "author": "aromanino (Crs4)",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/smartenv-crs4/keycloack-adapter-api/issues"
+    "url": "https://github.com/smartenv-crs4/Keycloak-adapter-api/issues"
   },
-  "homepage": "https://github.com/smartenv-crs4/keycloack-adapter-api#readme"
+  "homepage": "https://github.com/smartenv-crs4/Keycloak-adapter-api#readme"
 }

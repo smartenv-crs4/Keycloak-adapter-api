@@ -21,13 +21,13 @@ This middleware provides route protection, token validation, user role managemen
 ## 🚀 Installation
 
 ```bash
-npm install keycloak-connect keycloak-adapter-api
+npm install keycloak-adapter-api
 ```
 
 Or, if using Yarn:
 
 ```bash
-yarn add keycloak-connect keycloak-adapter-api
+yarn add keycloak-adapter-api
 ```
 
 ---
@@ -197,15 +197,5 @@ Design and development
 ------
 Alessandro Romanino ([a.romanino@gmail.com](mailto:a.romanino@gmail.com))<br>
 Guido Porruvecchio ([guido.porruvecchio@gmail.com](mailto:guido.porruvecchio@gmail.com))
-
-License - "MIT License"
------------------------
-
-MIT License
-
-
-
-Author
-------
 
 
