@@ -1,0 +1,44 @@
+{
+  "name": "keyclock-adapter-and-api",
+  "version": "1.0.1",
+  "description": "This module deals with the management of Keyclock features to handle Users and application login and API tokens to protect your API's",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "async": "^3.2.6",
+    "body-parser": "^2.2.0",
+    "cookie-parser": "^1.4.7",
+    "debug": "^4.4.1",
+    "express": "^5.1.0",
+    "express-session": "^1.18.1",
+    "jwt-simple": "^0.5.6",
+    "keycloak-connect": "^26.1.1",
+    "moment": "^2.30.1",
+    "morgan": "^1.10.0",
+    "request": "^2.88.2",
+    "serve-favicon": "^2.5.0",
+    "underscore": "^1.13.7"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/smartenv-crs4/keycloack-adapter-api.git"
+  },
+  "keywords": [
+    "keycloack",
+    "token",
+    "user",
+    "login",
+    "signin",
+    "session",
+    "ldap",
+    "federation"
+  ],
+  "author": "aromanino (Crs4)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/smartenv-crs4/keycloack-adapter-api/issues"
+  },
+  "homepage": "https://github.com/smartenv-crs4/keycloack-adapter-api#readme"
+}
