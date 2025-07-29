@@ -9,33 +9,9 @@ var ready=false;
 var readyQueue=[];
 
 
-// Funzione di configurazione dell'adapter Keycloak per un'applicazione Express.
-// Va invocata all'avvio dell'app, prima di definire le route protette.
-// Parametri:
-// - app: istanza dell'applicazione Express (es. const app = express();)
-// - keyCloackConfig: oggetto JSON con la configurazione del client Keycloak.
-//     Può essere ottenuto dalla console di amministrazione di Keycloak:
-//     Clients → [nome client] → Installation → "Keycloak OIDC JSON" → Download
-//     Esempio:
-//     {
-//       "realm": "nome-realm",
-//       "auth-server-url": "https://keycloak.example.com/",
-//       "ssl-required": "external",
-//       "resource": "nome-client",
-//       "credentials": { "secret": "codice-segreto" },
-//       "confidential-port": 0
-//     }
-// - keyCloackOptions: opzioni avanzate di configurazione dell'adapter.
-//     Opzioni principali supportate:
-//     - session: configurazione della sessione Express (come in express-session)
-//     - scope: ambiti dell'autenticazione (es. 'openid profile email offline_access')
-//         NB: per usare offline_access, il client deve avere l'opzione abilitata e
-//         l'utente deve avere il ruolo offline_access.
-//     - idpHint: per suggerire a Keycloak un identity provider durante il login
-//     - cookies: per abilitare la gestione dei cookie
-//     - realmUrl: per sovrascrivere l'URL del realm
 
 /**
+ * ***************************** - ENGLISH - *******************************
  * Configuration function for the Keycloak adapter in an Express application.
  * It must be called at app startup, before defining any protected routes.
  *
@@ -91,7 +67,7 @@ exports.configure=function(app,keyCloackConfig,keyCloackOptions){
 
 
 /**
- *                    ITALIANO
+ * *************************** - ITALIANO - *****************************
  * Metodo da utilizzare per definire le rotte Express che devono essere protette da Keycloak.
  *
  * Questo metodo deve essere invocato **dopo** aver configurato Keycloak con `configure()`.
@@ -126,7 +102,7 @@ exports.configure=function(app,keyCloackConfig,keyCloackOptions){
  */
 
 /**
- * ENGLISH
+ * ***************************** - ENGLISH - *******************************
  * Method to define Express routes that must be protected by Keycloak.
  *
  * This method must be called **after** Keycloak has been configured with `configure()`.
@@ -168,55 +144,8 @@ exports.underKeycloakProtection=function(callback){
 }
 
 
-// metodo protectMiddleware per la protezione di una risorsa in base ai ruoli
-// èun middleware che consente di proteggere le route Express, richiedendo che l’utente sia autenticato e,
-// opzionalmente, abbia specifici ruoli.
-// Viene comunemente usato per limitare l’accesso a risorse solo agli utenti autenticati,
-// o a quelli con determinati ruoli nel realm o in uno specifico client keycloak.
-// ecco alcuni esempi di utilizzo:
-//
-// // senza controlo sui ruoli solo per utenti autenticati:
-// app.get('/admin', keycloackAdapter.protectMiddleware(), (req, res) => {
-//     res.send('Solo utenti autenticati possono vedere questa risorsa.');
-// });
-//
-// Oppure con controllo sui ruoli di tipo client:
-// app.get('/admin', keycloackAdapter.protectMiddleware('admin'), (req, res) => {
-//     res.send('Solo utenti con ruolo di tipo admin del client possono vedere questa risorsa.');
-// });
-// Oppure con controllo sui ruoli di un altro client:
-// app.get('/admin', keycloackAdapter.protectMiddleware('clientid:admin'), (req, res) => {
-//     res.send('Solo utenti con ruolo di tipo admin del client 'clientid' possono vedere questa risorsa.');
-// });
-//
-// Oppure con controllo sui ruoli del realme:
-// app.get('/admin', keycloackAdapter.protectMiddleware('realme:admin'), (req, res) => {
-//     res.send('Solo utenti con ruolo di realme di tipo admin possono vedere questa risorsa.');
-// });
-//
-// Oppure con funzione di guardia personalizzata:
-// Una funzione personalizzata che riceve:
-//     token: oggetto access token Keycloak.
-//     req: la richiesta Express.
-//     Deve restituire true (consentito) che passa il controllo alla funzione che gestisce la risorsa
-//     oppure o false (vietato) restituendo access denied.
-// Non supporta async: la funzione dev’essere sincrona.
-// app.get('/custom', keycloackAdapter.protectMiddleware((token, req) => {
-//     return token.hasRealmRole('editor') && req.headers['x-custom-header'] === 'OK';
-// }), (req, res) => {
-//     res.send('Accesso personalizzato consentito se la funzione di controllo restituiesce true.');
-// });
-// Riepilogando, i parametri di protectMiddleware sono:
-//  conditions che è una stringa di controllo sul ruolo  oppure function(token, req): boolean
-// per quanto riguarda la funzione di controllo token rappresenta il contenuto del token utente e tra le varie
-// informazioni di cui si puo avere il contenuto con una stampa in console, espone alcuni metotodi tra cui:
-//token.hasRole('admin')             // true/false se il token ha ruolo client di tipo admin
-//token.hasRole('realm:superuser')   // realm-level // true/false se il token ha ruolo realm di tipo admin
-//token.hasRole('my-client:editor')  // client-level // true/false se il token ha ruolo editor nel client my-client
-//token.hasResourceRole('editor', 'my-client-id') identico a token.hasRole('my-client:editor')  // client-level
-
 /**
- * ITALIANO
+ * *************************** - ITALIANO - *****************************
  * Middleware per proteggere le rotte Express basandosi sull'autenticazione e, opzionalmente,
  * sull'autorizzazione tramite ruoli Keycloak.
  *
@@ -276,9 +205,8 @@ exports.underKeycloakProtection=function(callback){
  * o false (nega l’accesso).
  */
 
-
 /**
- * ENGLISH
+ * ***************************** - ENGLISH - *******************************
  * Middleware to protect Express routes based on authentication and, optionally,
  * authorization via Keycloak roles.
  *
@@ -342,25 +270,9 @@ exports.protectMiddleware=function(conditions){
     return(keycloak.protect(conditions));
 }
 
-// middleware molto simile a protectMiddleware che pero prendede come parametro una funzione
-// definita come funzione custom che deve restituire una striga contente  la striga di controllo
-// per la verifica del ruolo. Questo middleware è da utilizzare nel caso di risorse parametriche
-// per poter generare stringhe di controllo dinamiche. Rispetto al middlewsare protectMiddleware
-// con funzione di comtrollo questo middleware è utile nel caso in cui non si voglia frugare nel token
-// o nei casi in cui non si ha bisogno di fare altre azioni e controlli, per esempio non posso
-// utilizzarlo se volessi controllare oltre al ruolo altre condizioni
-// come l'ip del client, questo perchè  perche la customfunction crea solo lastringa di controllo
-// a differenza di protectMiddleware con funzione di controllo
-// Esempio di utilizzo:
-//
-// app.get('/custom/:id', keycloackAdapter.protectMiddleware((req) => {
-//     return (´clientRole${req.params.is}`);
-// }), (req, res) => {
-//     res.send('Accesso personalizzato consentito a chi ha il seguente ruolo :(´clientRole${req.params.is}`');
-// });
 
 /**
- * ITALIANO
+ * *************************** - ITALIANO - *****************************
  * Middleware simile a `protectMiddleware` ma con controllo dinamico dei ruoli tramite funzione.
  *
  * A differenza di `protectMiddleware` che accetta una stringa che esprime il ruolo o una funzione di controllo
@@ -395,7 +307,7 @@ exports.protectMiddleware=function(conditions){
  */
 
 /**
- * ENGLISH
+ * ***************************** - ENGLISH - *******************************
  * Middleware similar to `protectMiddleware` but with dynamic role checking via a function.
  *
  * Unlike `protectMiddleware`, which accepts a string expressing the role or a control function
@@ -437,30 +349,8 @@ exports.customProtectMiddleware=function(customFunction){
 }
 
 
-// encodeTokenRole è un middleware che ha il compito di decodificre il token ed aggiungerlo
-// alla request nel campo "req.encodedTokenRole". A differrenza di  customProtectMiddleware
-// e di protectMiddleware non effettua nessun controllo sui ruoli ma decodifica solamente il token.
-// Questo middleware è da utilizzare prefferibilmente quando dentro la funzione di gestione
-// della route si vuol fare qualcosa di diverso a seconda del tipo di ruolo del token
-// Per esempio è molto utile nel caso in cui si voglia restituire una pagina diversa a seconda del ruolo dell'utente
-// per quanto riguarda il contenuto inserito dal middleware in req.encodedTokenRole,
-// esso rappresenta il contenuto del token utente e tra le varie
-// informazioni di cui si puo avere il contenuto con una stampa in console, espone alcuni metotodi tra cui:
-//token.hasRole('admin')             // true/false se il token ha ruolo client di tipo admin
-//token.hasRole('realm:superuser')   // realm-level // true/false se il token ha ruolo realm di tipo admin
-//token.hasRole('my-client:editor')  // client-level // true/false se il token ha ruolo editor nel client my-client
-//token.hasResourceRole('editor', 'my-client-id') identico a token.hasRole('my-client:editor')  // client-level
-// Ecco un esempio di utilizzo:
-// app.get('/encodeToken', keycloackAdapter.encodeTokenRole(), (req, res) => {
-//     if(req.encodedTokenRole.hasRole('realm:admin'))
-//         res.send("Is its admin in encodeToken");
-//     else
-//         res.send("Is its an USER in encodeToken");
-//
-// });
-
 /**
- * ITALIANO
+ * *************************** - ITALIANO - *****************************
  * Middleware `encodeTokenRole` che decodifica il token Keycloak e lo aggiunge
  * alla richiesta Express come `req.encodedTokenRole`.
  *
@@ -499,7 +389,7 @@ exports.customProtectMiddleware=function(customFunction){
 
 
 /**
- *                              ENGLISH
+ * ***************************** - ENGLISH - *******************************
  * `encodeTokenRole` middleware that decodes the Keycloak token and adds it
  * to the Express request as `req.encodedTokenRole`.
  *
@@ -544,83 +434,9 @@ exports.encodeTokenRole=function(){
 }
 
 
-// enforcerMiddleware è un middleware che abilita il controllo delle permission basate su risorse e policy definite
-// in Keycloak (Authorization Services). A differenza di protectMiddleware e simili, che verifica solo l’autenticazione o ruoli,
-// enforcerMiddleware() consente di verificare se l’utente ha l’autorizzazione ad accedere a una risorsa specifica(UMA 2.0).
-// È utile in contesti dove le risorse sono registrate in Keycloak (come documenti, istanze, entità dinamiche) e
-// protette da policy flessibili.
-// conditions è una stringa contenente le regole/policies oppure una funzione di controllo cosi definita:
-// function(token,req,callback) dove req è la request mentre token contiene le info del token decodificato
-// ed una funzione di callback da invocare al termine del processo di verifica delle autorizzazioni
-// con true nel caso in cui si voglia autorizzare l'accesso alla risorsa o false in caso contrario.
-// il parametro token passato alla funzione di controllo ha un metodo chiamato hasPermission(permission, callbackToControllfunction)
-// che prende come parametro una stringa di controllo contente il permesso da verificare ed una funzione di callback
-// chiamata callbackToControllfunction(trueOrFalse) verso la funzione di controllo avente come parametro trueOrFalse
-// che eè un valore booleano che e true significa che hasPermission su la stringa di controllo permission è
-// valida mentre è false in caso contrario.
-// options è invecce un parametro opzionale contente configurazioni aggiuntive:
-//   -response_mode: che puo essere 'permissions'o 'token'
-//   -claims: object	Dizionario di Claim Information Points, utile per policy con condizioni dinamiche (es: matching owner ID).
-//   -resource_server_id: string (Opzionale) Specifica il client che gestisce le risorse. Default: client corrente.
-//
-// If response_mode is set to token, permissions are obtained from the server on behalf of the
-// subject represented by the bearer token that was sent to your application.
-// In this case, a new access token is issued by Keycloak with the permissions granted by the server.
-// If the server did not respond with a token with the expected permissions, the request is denied.
-// When using this mode, you should be able to obtain the token from the request as follows:
-//
-//     app.get('/apis/me', keycloakAdapter.enforcerMiddleware('user:profile', {response_mode: 'token'}), function (req, res) {
-//         const token = req.kauth.grant.access_token.content;
-//         const permissions = token.authorization ? token.authorization.permissions : undefined;
-//
-//         // show user profile
-//     });
-// Prefer this mode when your application is using sessions and you want to cache previous decisions from the server,
-// as well automatically handle refresh tokens. This mode is especially useful for applications acting as a client and
-// resource server.
-//
-// If response_mode is set to permissions (default mode), the server only returns the list of granted permissions,
-// without issuing a new access token. In addition to not issuing a new token, this method exposes the permissions
-// granted by the server through the request as follows:
-//
-//     app.get('/apis/me', keycloakAdaptoer.enforcerMiddleware('user:profile', {response_mode: 'permissions'}), function (req, res) {
-//         const permissions = req.permissions;
-//
-//         // show user profile
-//     });
-// Requisiti per usare enforcerMiddleware()
-// Il client deve essere configurato con:
-//  - Authorization Enabled
-//  - Policy Enforcement Mode: Enforcing
-//  - Add permissions to access token: ON
-//
-// Devi aver creato:
-//  - Risorse (Resource)
-//  - Policy (es: ruolo, owner, regole JS)
-//  - Permission (che lega policy alla risorsa)
-//
-// Esempio di utilizzo:
-// con stringa di controllo statica
-// app.get('/onlyAdminroute', keycloackAdapter.enforcerMiddleware('ui-admin-resource'), (req, res) => {
-//     res.send('You are an authorized admin User for this client');
-// });
-//
-// con funzione di controllo:
-// app.get('/onlyAdminrouteByfunction', keycloackAdapter.enforcerMiddleware(function (token,req,callback) {
-//     token.hasPermission('ui-admin-resource',function(permission){
-//         if(permission) callback(true)
-//         else {
-//             token.hasPermission('ui-viwer-resource', function (permission) {
-//                 if (permission) callback(true)
-//                 else callback(false);
-//             }) ;
-//         }
-//     })
-// }),(req, res) => {
-//     res.send('You are an authorized admin o viewer User: function mode');
-// });
 
 /**
+ * *************************** - ITALIANO - *****************************
  * Middleware `enforcerMiddleware` per abilitare il controllo delle autorizzazioni (permissions)
  * basate su risorse e policy definite in Keycloak Authorization Services (basato su UMA 2.0).
  *
@@ -693,7 +509,7 @@ exports.encodeTokenRole=function(){
  */
 
 /**
- * ENGLISH
+ * ***************************** - ENGLISH - *******************************
  * `enforcerMiddleware` middleware to enable permission checks
  * based on resources and policies defined in Keycloak Authorization Services (UMA 2.0-based).
  *
@@ -787,59 +603,9 @@ exports.enforcerMiddleware=function(conditions,options){
 
 
 
-// customEnforcerMiddleware è un middleware molto simile a enforcerMiddleware
-// esso prende come parametro una funzione di controllo customFunction che restituisce la stringa di controllo
-// su cui verificare le autorizzaxzioni di accesso,
-// options è invecce un parametro opzionale contente configurazioni aggiuntive:
-//   -response_mode: che puo essere 'permissions'o 'token'
-//   -claims: object	Dizionario di Claim Information Points, utile per policy con condizioni dinamiche (es: matching owner ID).
-//   -resource_server_id: string (Opzionale) Specifica il client che gestisce le risorse. Default: client corrente.
-//
-// If response_mode is set to token, permissions are obtained from the server on behalf of the
-// subject represented by the bearer token that was sent to your application.
-// In this case, a new access token is issued by Keycloak with the permissions granted by the server.
-// If the server did not respond with a token with the expected permissions, the request is denied.
-// When using this mode, you should be able to obtain the token from the request as follows:
-//
-//     app.get('/apis/me', keycloakAdapter.enforcerMiddleware('user:profile', {response_mode: 'token'}), function (req, res) {
-//         const token = req.kauth.grant.access_token.content;
-//         const permissions = token.authorization ? token.authorization.permissions : undefined;
-//
-//         // show user profile
-//     });
-// Prefer this mode when your application is using sessions and you want to cache previous decisions from the server,
-// as well automatically handle refresh tokens. This mode is especially useful for applications acting as a client and
-// resource server.
-//
-// If response_mode is set to permissions (default mode), the server only returns the list of granted permissions,
-// without issuing a new access token. In addition to not issuing a new token, this method exposes the permissions
-// granted by the server through the request as follows:
-//
-//     app.get('/apis/me', keycloakAdaptoer.enforcerMiddleware('user:profile', {response_mode: 'permissions'}), function (req, res) {
-//         const permissions = req.permissions;
-//
-//         // show user profile
-//     });
-// Requisiti per usare enforcerMiddleware()
-// Il client deve essere configurato con:
-//  - Authorization Enabled
-//  - Policy Enforcement Mode: Enforcing
-//  - Add permissions to access token: ON
-//
-// Devi aver creato:
-//  - Risorse (Resource)
-//  - Policy (es: ruolo, owner, regole JS)
-//  - Permission (che lega policy alla risorsa)
-//
-// Esempio di utilizzo:
-// let tmpFunctionEnforce=function (req,res) {
-//     return(req.params.permission);
-// }
-// app.get('/onlyAdminrouteByfunction/:permission', keycloackAdapter.customEnforcerMiddleware(tmpFunctionEnforce), (req, res) => {
-//     res.send('You are an authorized admin User by function permission parameters ');
-// });
 
 /**
+ * *************************** - ITALIANO - *****************************
  * Middleware `customEnforcerMiddleware` per il controllo delle autorizzazioni basate su risorse e policy
  * definite in Keycloak Authorization Services (UMA 2.0), con stringhe di controllo dinamiche.
  *
@@ -895,6 +661,7 @@ exports.enforcerMiddleware=function(conditions,options){
  */
 
 /**
+ * ***************************** - ENGLISH - *******************************
  * `customEnforcerMiddleware` middleware for permission checks based on resources and policies
  * defined in Keycloak Authorization Services (UMA 2.0), using dynamic permission strings.
  *
@@ -969,26 +736,9 @@ function encodeTokenPermissionHandler(permissions,req,res,callback){
     });
 }
 
-// encodeTokenPermission è un middleware che ha il compito di decodificre il token ed aggiungerlo
-// alla request nel campo "req.encodedTokenPremission". A differrenza di  customEnforcerMiddleware
-// e di ebforceMiddleware non effettua nessun controllo sui permessi ma decodifica solamente il token.
-// Questo middleware è da utilizzare prefferibilmente quando dentro la funzione di gestione
-// della route si vuol fare qualcosa di diverso a seconda del tipo di permessi del token
-// Per esempio è molto utile nel caso in cui si voglia restituire una pagina diversa a seconda dei permessi dell'utente.
-// Per quanto riguarda il contenuto inserito dal middleware in req.encodedTokenPremission,
-// espone il metodo hasPermission(permission,callback) dove permission è una stringa di controllo contennte il
-// permesso da verificare mentre callback è la funzione di risposta a cui hasPermission deve rispondere
-// con tru nel caso in cui permission sia verificato e false in caso contrario.
-// Ecco un esempio di utilizzo:
-//  app.get('/encodeTokenPermission', keycloackAdapter.encodeTokenPermission(), (req, res) => {
-//         req.encodedTokenPremission.hasPermission('ui-admin-resource', function(perm){
-//             if(perm)
-//                 res.send('You are an authorized admin User by function permission parameters ');
-//             else res.status(403).send("access Denied By encodeTokenPermission ")
-//         });
-//     });
 
 /**
+ * *************************** - ITALIANO - *****************************
  * Middleware `encodeTokenPermission`
  *
  * Questo middleware ha il solo compito di decodificare il token di accesso presente nella richiesta
@@ -1031,6 +781,7 @@ function encodeTokenPermissionHandler(permissions,req,res,callback){
 
 
 /**
+ * ***************************** - ENGLISH - *******************************
  * `encodeTokenPermission` Middleware
  *
  * This middleware's sole purpose is to decode the access token present in the request
@@ -1082,19 +833,8 @@ exports.encodeTokenPermission=function(){
     });
 }
 
-
-// loginMiddleware è un mddleware che viene utilizzato per forzare il client(browser) ad effettuare il login
-// dell'utente nel caso esso non sia ancora autenticato. Esso è respnsabile di far eseguire
-// l'autenticazione su keyclock secondo le sue politiche configurate e di ridirigere l'utente tramite
-// per esempio il suo browser alla risorsa specificata nella striga contenuta nel parametro di 'redirecTo'
-// della funzione del middleware. In generale questa funzione serve per poter eseguire il login degli utenti
-// Esempio di utilizzo:
-// app.get('/loginMiddleware', keycloackAdapter.loginMiddleware("/home") ,(req, res) => {
-//     // Response Handled by Middleware. non raggiungi mai questa sezione della funzione
-//     // il middleware risponde con access denied o redirigge in questo esempio a "/home"
-// });
-
 /**
+ * *************************** - ITALIANO - *****************************
  * Middleware `loginMiddleware`
  *
  * Questo middleware viene utilizzato per **forzare l'autenticazione dell'utente** tramite Keycloak.
@@ -1132,6 +872,7 @@ exports.encodeTokenPermission=function(){
  */
 
 /**
+ * ***************************** - ENGLISH - *******************************
  * `loginMiddleware` Middleware
  *
  * This middleware is used to **force user authentication** via Keycloak.
@@ -1174,18 +915,9 @@ exports.loginMiddleware=function(redirecTo){
     }]);
 }
 
-// cosi come loginMiddleware, logoutMiddleware è un mddleware che viene utilizzato per forzare il logout(browser)
-// dell'utente ed eliminare l'eventuale sessione. Esso è respnsabile di far eseguire
-// il logout su keycloak secondo le sue politiche configurate e di ridirigere l'utente tramite
-// alla risorsa specificata nella striga contenuta nel parametro di 'redirecTo'
-// della funzione del middleware. In generale questa funzione serve per poter eseguire il logout degli utenti
-// Esempio di utilizzo:
-// app.get('/logoutMiddleware', keycloackAdapter.logoutMiddleware("http://localhost:3001/home"),(req, res) => {
-//     // Responce Handled by Middleware. non raggiungi mai questa sezione della funzione
-//     // il middleware  redirigge in questo esempio a "http://localhost:3001/home"
-// });
 
 /**
+ * *************************** - ITALIANO - *****************************
  * Middleware `logoutMiddleware`
  *
  * Questo middleware viene utilizzato per **forzare il logout dell'utente**, eliminando la sessione locale
@@ -1225,6 +957,7 @@ exports.loginMiddleware=function(redirecTo){
  */
 
 /**
+ * ***************************** - ENGLISH - *******************************
  * `logoutMiddleware` Middleware
  *
  * This middleware is used to **force user logout**, removing the local session
@@ -1272,25 +1005,9 @@ exports.logoutMiddleware=function(redirectTo){
     }
 }
 
-// login non è una funzione middlewre ma una funzione classica sincrona che cosi come  loginMiddleware
-// viene utilizzato per forzare il client(browser) ad effettuare il login
-// dell'utente nel caso esso non sia ancora autenticato. Esso è respnsabile di far eseguire
-// l'autenticazione su keyclock secondo le sue politiche configurate e di ridirigere l'utente tramite
-// alla risorsa specificata nella striga contenuta nel parametro di 'redirecTo'
-// della funzione del middleware. altri due parametri che prende questa funzione sono req e res che rappresentano la
-// request e la response di express. In generale questa funzione serve per poter eseguire il login degli utenti
-// senza utilizzare il middleware con la sua logica interna e consentendo un controllo piu fine
-// all interno della funzoine di gestione della risorsa.
-// Esempio di utilizzo:
-// app.get('/login', (req, res) => {
-//     // raggiungi sempre questa sezione
-//     // Your custom code of resouce handler
-//     //.......
-//     keycloackAdapter.login(req,res,"/home"); // force login e redirect to /home
-//
-// });
 
 /**
+ * *************************** - ITALIANO - *****************************
  * Funzione `login`
  *
  * Questa non è un middleware, ma una **funzione sincrona classica** che forza l'autenticazione dell'utente
@@ -1333,6 +1050,7 @@ exports.logoutMiddleware=function(redirectTo){
  */
 
 /**
+ * ***************************** - ENGLISH - *******************************
  * `login` Function
  *
  * This is not a middleware, but a **classic synchronous function** that forces user authentication
@@ -1380,23 +1098,9 @@ exports.login=function(req,res,redirectTo){
     });
 }
 
-// logout non è una funzione middlewre ma una funzione classica sincrona che cosi come  logoutMiddleware
-// viene utilizzato per forzare il client(browser) ad effettuare il logout
-// dell'utente ed eliminare l'eventuale sessione. Esso è respnsabile di far eseguire
-// il logout su keycloak secondo le sue politiche configurate e di ridirigere l'utente tramite
-// alla risorsa specificata nella striga contenuta nel parametro di 'redirecTo'
-// della funzione del middleware. altri due parametri che prende questa funzione sono req e res che rappresentano la
-// // request e la response di express.
-// In generale questa funzione serve per poter eseguire il logout degli utenti
-// // Esempio di utilizzo:
-// app.get('/logout', (req, res) => {
-//     // raggiungi sempre questa sezione
-//     // Your custom code of resouce handler
-//     // .......
-//       keycloackAdapter.logout(req,res,"http://localhost:3001/home");
-// });
 
 /**
+ * *************************** - ITALIANO - *****************************
  * Funzione `logout`
  *
  * Questa non è un middleware, ma una **funzione sincrona classica** che forza l'utente ad eseguire il logout
@@ -1435,6 +1139,7 @@ exports.login=function(req,res,redirectTo){
  */
 
 /**
+ * ***************************** - ENGLISH - *******************************
  * `logout` Function
  *
  * This is not a middleware, but a **classic synchronous function** that forces the user to logout
