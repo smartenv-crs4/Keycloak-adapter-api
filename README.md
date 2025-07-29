@@ -110,7 +110,7 @@ keycloackAdapter.underKeycloakProtection(function(){
 
     // Example of logout with keycloackAdapter.logoutMiddleware middleware
     // After login redirect to "http://localhost:3001/home"
-    app.get('/logoutMiddleware', keycloackAdapter.logoutMiddleware("http://localhost:3001/home"),(req, res) => {
+    app.get('/logoutMiddle', keycloackAdapter.logoutMiddleware("http://redirctUrl"), (req, res) => {
         // Response handled by middleware, this section will never be reached.
     });
     
@@ -184,11 +184,13 @@ keycloackAdapter.underKeycloakProtection(function(){
 
     });
 
-    // This section provides examples of how to protect resources based on permissions rather than roles.
+    // This section provides examples of how to protect resources based on permissions
+    // rather than roles.
 
     // Example of protection with keycloackAdapter.enforcerMiddleware middleware
     // whith a static control string
-    // Access is allowed only for users with 'ui-admin-resource' permission defined in keycloak
+    // Access is allowed only for users with 'ui-admin-resource' permission defined 
+    // in keycloak
     app.get('/adminResource', keycloackAdapter.enforcerMiddleware('ui-admin-resource'), (req, res) => {
         // If this section is reached, the user has the required privileges; 
         // otherwise, the middleware responds with a 403 Access Denied.
@@ -221,7 +223,8 @@ keycloackAdapter.underKeycloakProtection(function(){
 
     // Example of protection with keycloackAdapter.customEnforcerMiddleware middleware
     // whith a control function tmpFunctionEnforce that define the control string
-    // Access is allowed only for users with a url params ':permission' permission defined in keycloak
+    // Access is allowed only for users with a url params ':permission' permission defined 
+    // in keycloak
     let tmpFunctionEnforce=function (req,res) {
         // Permission that depends on a URL parameter.
         return(req.params.permission);
@@ -311,7 +314,7 @@ Parameters:
     - realmUrl: to override the realm URL
 ---
 
-## 🔧 Middleware disponibili
+## 🔧 Available Middlewares
 
 ### `underKeycloakProtection(callback)`
 Method to define Express routes that must be protected by Keycloak.
@@ -342,7 +345,8 @@ keycloakAdapter.underKeycloakProtection(() => {
 
     // Route with forced login: handled directly by middleware
     app.get('/loginMiddleware', keycloakAdapter.loginMiddleware("/home"), (req, res) => {
-        // This response will never be sent because the middleware handles the request directly
+        // This response will never be sent because the middleware handles the 
+        // request directly
     });
 });
 ```
@@ -699,6 +703,9 @@ app.get('/logoutMiddleware', keycloakAdapter.logoutMiddleware("http://localhost:
 --- Requirements ---
 - The Keycloak client must have properly configured `Valid Redirect URIs`.
 - The Express session must be active (e.g., `express-session` properly initialized).
+
+
+## 🔧 Available Functions
 
 ### `login(req, res, redirectTo)`
 `login` Function not a middleware, but a **classic synchronous function** that forces user authentication
