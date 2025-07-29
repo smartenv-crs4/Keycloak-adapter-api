@@ -290,7 +290,7 @@ adapter in an Express application.
 It must be called at app startup, before defining any protected routes.
 
 Parameters:
--   app: Express application instance (e.g., const app = express();)
+- app: Express application instance (e.g., const app = express();)
 -   keyCloakConfig: JSON object containing the Keycloak client configuration.
      This can be obtained from the Keycloak admin console:
      Clients → [client name] → Installation → "Keycloak OIDC JSON" → Download
@@ -425,6 +425,7 @@ so it cannot be used for complex logic depending on request properties other tha
 The function's sole task is to generate the role control string.
 
 --- Parameters ---
+
 @param {function} customFunction - function that receives (req, res) and returns a string
 with the role control string to pass to Keycloak.
 
@@ -452,6 +453,7 @@ Useful in contexts where resources are registered in Keycloak (such as documents
 protected by flexible policies.
 
 --- Parameters ---
+
 @param {string|function} conditions
 - string containing the name of the resource or permission to check
 - custom check function with signature:
@@ -480,6 +482,7 @@ protected by flexible policies.
     - Useful for apps with sessions and decision caching
 
 --- Keycloak requirements ---
+
 The client must have:
 - Authorization Enabled = ON
 - Policy Enforcement Mode = Enforcing
@@ -522,6 +525,7 @@ This middleware is similar to `enforcerMiddleware`, but takes a function
 the permission/resource string to be checked.
 
 --- Parameters ---
+
 @param {function} customFunction
 Function that receives `req` and `res` and returns the control string for Keycloak.
 Example:
@@ -549,6 +553,7 @@ Additional options passed to `keycloak.enforcer()`, including:
     - Useful for decision caching, session handling, automatic token refresh
 
 --- Keycloak Requirements ---
+
 The client must be configured with:
 - Authorization Enabled = ON
 - Policy Enforcement Mode = Enforcing
@@ -584,6 +589,7 @@ or other information contained in the token directly in the route handler,
 for example showing different content based on role.
 
 --- Contents of `req.encodedTokenRole` ---
+
 Represents the decoded Keycloak token and exposes several useful methods such as:
 - token.hasRole('admin')             // true/false if it has client role "admin"
 - token.hasRole('realm:superuser')   // true/false if it has realm role "superuser"
@@ -617,9 +623,9 @@ It is particularly useful when:
 - you do not want to block access upfront but decide dynamically within the route handler.
 
 --- Additions to `req` ---
-After applying the middleware, `req` contains:
 
-@property {Object} req.encodedTokenPermission
+After applying the middleware, `req` contains:
+- @property {Object} req.encodedTokenPermission
 An object exposing the method:
     - hasPermission(permission: string, callback: function(boolean))
       Checks whether the token contains the specified permission.
@@ -655,9 +661,11 @@ It is particularly useful when you want to:
 3. If authentication is successful, the user is redirected to 'redirectTo' (usually `/home`, `/dashboard`, etc.).
 
 --- Parameters ---
+
 @param {string} redirectTo - URL to redirect the user to after login.
 
 --- Warning ---
+
 The route handler callback is **never executed**, because the middleware will respond earlier
 with a redirect or block the request.
 
@@ -686,6 +694,7 @@ It is useful when:
 4. Redirects the user to the Keycloak logout URL, which in turn redirects to the provided URL.
 
 --- Parameters ---
+
 @param {string} redirectTo - URL to which the user will be redirected after complete logout.
 
 ✅ Usage example:
@@ -718,9 +727,10 @@ After successful login, the user is redirected to the URL specified in the `redi
   offering **greater control** over when and how login is enforced.
 
 --- Parameters ---
-@param {Object} req - Express `Request` object
-@param {Object} res - Express `Response` object
-@param {string} redirectTo - URL to redirect the user to after successful login
+
+- @param {Object} req - Express `Request` object
+- @param {Object} res - Express `Response` object
+- @param {string} redirectTo - URL to redirect the user to after successful login
 
 --- Behavior ---
 1. Attempts to protect the request using `keycloak.protect()`.
@@ -755,9 +765,9 @@ logout URL and redirects the user's browser to that address.
   **conditionally** or within more complex logic.
 
 --- Parameters ---
-@param {Object} req - Express `Request` object
-@param {Object} res - Express `Response` object
-@param {string} redirectTo - URL to redirect the user after logout
+- @param {Object} req - Express `Request` object
+- @param {Object} res - Express `Response` object
+- @param {string} redirectTo - URL to redirect the user after logout
 
 --- Behavior ---
 1. Retrieves the `id_token` from the current user's Keycloak token (if present).
