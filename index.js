@@ -1,19 +1,21 @@
 var express = require('express');
 var conf=require('./config').conf;
 var responseinterceptor = require('responseinterceptor');
-
 var Keycloak =require('keycloak-connect');
 var session=require('express-session');
+//const {default: KcAdminClient} = require("@keycloak/keycloak-admin-client");
+var keycloakAdminClient=require('@keycloak/keycloak-admin-client').default;
 var keycloak = null;
 var ready=false;
 var readyQueue=[];
-
+var kcAdminClient=null;
 
 
 /**
  * ***************************** - ENGLISH - *******************************
- * Configuration function for the Keycloak adapter in an Express application.
+ * Async Configuration function for the Keycloak adapter in an Express application.
  * It must be called at app startup, before defining any protected routes.
+ * It returns a promise
  *
  * Parameters:
  * - app: Express application instance (e.g., const app = express();)
@@ -38,8 +40,33 @@ var readyQueue=[];
  *     - idpHint: to suggest an identity provider to Keycloak during login
  *     - cookies: to enable cookie handling
  *     - realmUrl: to override the realm URL
+ *
+ * - adminClientCredentials: [Optional] Advanced configuration for setting up the realm-admin user or client,
+ *   which will be used as the administrator to manage Keycloak via API.
+ *   This is required in order to use the administrative functions exposed by this library.
+ *   If this parameter is not provided, it will not be possible to use the administrative functions of Keycloak
+ *   exposed by this adapter. In fact, exports.kcAdminClient will be null, so any attempt to call
+ *   keycloakAdapter.kcAdminClient will result in a runtime error due to access on an undefined object
+ *
+ *     Main supported options:
+ *     - realmName: [Optional] A String that specifies the realm to authenticate against, if different from the keyCloakConfig.realm parameter.
+ *       If you intend to use Keycloak administrator credentials, this should be set to 'master'.
+ *     - scope: [Optional] A string that specifies The OAuth2 scope requested during authentication (optional).
+ *              Typically not required for administrative clients. example:openid profile
+ *    - requestOptions: [Optional] JSON parameters to configure HTTP requests (such as custom headers, timeouts, etc.).
+ *      It is compatible with the Fetch API standard. Fetch request options
+ *      https://developer.mozilla.org/en-US/docs/Web/API/fetch#options
+ *    - username: [Optional] string username. Required when using the password grant type.
+ *    - password: [Optional] string password. Required when using the password grant type.
+ *    - grantType: The OAuth2 grant type used for authentication.
+ *      Possible values: 'password', 'client_credentials', 'refresh_token', etc.
+ *    - clientId: string containing the client ID configured in Keycloak. Required for all grant types.
+ *    - clientSecret: [Optional] string containing the client secret of the client. Required for client_credentials or confidential clients.
+ *    - totp: string for Time-based One-Time Password (TOTP) for multi-factor authentication (MFA), if enabled for the user.
+ *    - offlineToken: [Optional] boolean value. If true, requests an offline token (used for long-lived refresh tokens). Default is false.
+ *    - refreshToken: [Optional] string containing a valid refresh token to request a new access token when using the refresh_token grant type.
  */
-exports.configure=function(app,keyCloackConfig,keyCloackOptions){
+exports.configure=async function(app,keyCloackConfig,keyCloackOptions,adminClientCredentials){
     if(keyCloackOptions){
         if (keyCloackOptions.session){
             const memoryStore = new session.MemoryStore();
@@ -56,6 +83,21 @@ exports.configure=function(app,keyCloackConfig,keyCloackOptions){
     }else keyCloackOptions={};
 
     keycloak = new Keycloak(keyCloackOptions,keyCloackConfig);
+
+
+
+
+    if (adminClientCredentials){
+        let configAdminclient={
+            baseUrl:keyCloackConfig['auth-server-url'],
+            realmName:adminClientCredentials.realmName || keyCloackConfig.realm
+        }
+        kcAdminClient=  new keycloakAdminClient(configAdminclient);
+        await kcAdminClient.auth(adminClientCredentials);
+    }
+
+    exports.kcAdminClient=kcAdminClient;
+
     app.use(keycloak.middleware());
     readyQueue.forEach(function(clb){
         clb();
@@ -68,6 +110,21 @@ exports.configure=function(app,keyCloackConfig,keyCloackOptions){
 
 /**
  * *************************** - ITALIANO - *****************************
+ * @deprecated Usa la funzione `configure` con `await keycloakAdapter.configure(...)`,
+ * poi definisci normalmente le risorse come faresti in Express:
+ *
+ *     await keycloakAdapter.configure(...);
+ *     app.get('/mia-rotta', handler);
+ *
+ * Oppure, se preferisci definire le risorse all'interno di un blocco dopo la configurazione,
+ * puoi usare la sintassi con `then`:
+ *
+ *     keycloakAdapter.configure(...).then(() => {
+ *         // Definizione delle rotte
+ *         app.get('/mia-rotta', handler);
+ *     });
+ *
+ * Questa funzione è obsoleta e sarà rimossa in versioni future.
  * Metodo da utilizzare per definire le rotte Express che devono essere protette da Keycloak.
  *
  * Questo metodo deve essere invocato **dopo** aver configurato Keycloak con `configure()`.
@@ -101,8 +158,25 @@ exports.configure=function(app,keyCloackConfig,keyCloackOptions){
  * });
  */
 
+
 /**
  * ***************************** - ENGLISH - *******************************
+ * @deprecated Use the `configure` function with `await keycloakAdapter.configure(...)`,
+ * then define your resources as you normally would in Express:
+ *
+ *     await keycloakAdapter.configure(...);
+ *     app.get('/my-route', handler);
+ *
+ * Alternatively, if you prefer to define your resources inside a container after configuration,
+ * you can use the `then` syntax:
+ *
+ *     keycloakAdapter.configure(...).then(() => {
+ *         // Define your routes here
+ *         app.get('/my-route', handler);
+ *     });
+ *
+ * This function is deprecated and will be removed in future versions.
+ *
  * Method to define Express routes that must be protected by Keycloak.
  *
  * This method must be called **after** Keycloak has been configured with `configure()`.

@@ -7,6 +7,7 @@
     "test": "mocha"
   },
   "dependencies": {
+    "@keycloak/keycloak-admin-client": "^26.3.2",
     "async": "^3.2.6",
     "body-parser": "^2.2.0",
     "cookie-parser": "^1.4.7",
@@ -18,6 +19,7 @@
     "moment": "^2.30.1",
     "morgan": "^1.10.0",
     "request": "^2.88.2",
+    "responseinterceptor": "^1.1.8",
     "serve-favicon": "^2.5.0",
     "underscore": "^1.13.7"
   },
@@ -26,14 +28,21 @@
     "url": "git+https://github.com/smartenv-crs4/Keycloak-adapter-api.git"
   },
   "keywords": [
-    "keycloack",
+    "keycloak",
     "token",
     "user",
     "login",
     "signin",
     "session",
     "ldap",
-    "federation"
+    "federation",
+    "authentication",
+    "oauth",
+    "oauth2.0",
+    "sso",
+    "api",
+    "client",
+    "adapter"
   ],
   "author": "aromanino (Crs4)",
   "license": "MIT",
