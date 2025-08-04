@@ -3,7 +3,7 @@
 An adapter API to seamlessly integrate **Node.js Express** applications with **Keycloak** for authentication and authorization using **OpenID Connect (OIDC)**.
 
 This middleware provides route protection, token validation, user role management, and easy access to Keycloak-secured APIs. Ideal for securing RESTful services, microservices, and Express-based backends.
-
+it is based 'keycloak-connect', 'express-session') and "@keycloak/keycloak-admin-client"
 ---
 
 ## 📦 Features
@@ -885,14 +885,15 @@ The roles users refers to Keycloak's users management functionality, part of the
 It allows you to create, update, inspect, and delete both realm-level and client-level users.
 
 #### `entity roles functions`
+
 ##### `function create(user-dictionary)`
-create() is a method of the Keycloak Admin client used to create a new user in the specified realm. 
+create is a method used to create a new user in the specified realm. 
 This method accepts a user representation object containing details such as username, email, enabled status, 
-credentials, and other user attributes. 
+credentials, and other user attributes that can be get by getProfile function. 
 It is typically used when you want to programmatically add new users to your Keycloak realm via the Admin API.
 ```js
  // create a new user
- const userProfile = await keycloakAdapter.kcAdminClient.uusers.create({
+ const userProfile = await keycloakAdapter.kcAdminClient.users.create({
      username:"username",
      email: "test@keycloak.org",
      // enabled required to be true in order to send actions email
@@ -902,6 +903,148 @@ It is typically used when you want to programmatically add new users to your Key
          key: "value",
      },
  });
+ ```
+##### `function find(filter)`
+find method is used to retrieve a list of users in a specific realm. 
+It supports optional filtering parameters such as username, email, first name, last name, and more. 
+Searching by attributes is only available from Keycloak > 15
+@parameters:
+- filter: parameter provided as a JSON object that accepts the following filter:
+  - q: A string containing a query filter by custom attributes, such as 'username:admin'. 
+  - {builtin attribute}: To find users by builtin attributes such as email, surname... example {email:"admin@admin.com"}
+  - max: A pagination parameter used to define the maximum number of users to return (limit).
+  - first: A pagination parameter used to define the number of users to skip before starting to return results (offset/limit).
+```js
+ // find a user with 'key:value'
+const user = await keycloakAdapter.kcAdminClient.users.find({ q: "key:value" });;
+if(user) console.log('User found:', user);
+else console.log('User not found');
+
+// find a user by name = John
+user = await keycloakAdapter.kcAdminClient.users.find({ name: "John" });;
+if(user) console.log('User found:', user);
+else console.log('User not found');
+
+// find a user with 'name:john', skip 10 users and limt to 5
+const user = await keycloakAdapter.kcAdminClient.users.find({ q: "name:john", first:11, max:5});;
+if(user) console.log('User found:', user);
+else console.log('User not found');
+ ```
+
+##### `function findOne(filter)`
+findOne is method used to retrieve a specific user's details by their unique identifier (id) within a given realm. 
+It returns the full user representation if the user exists.
+```js
+ // find a user with id:'user-id'
+const user = await keycloakAdapter.kcAdminClient.users.findOne({ id: 'user-id' });
+if(user) console.log('User found:', user);
+else console.log('User not found');
+ ```
+
+##### `function count(filter)`
+count method returns the total number of users in a given realm. 
+It optionally accepts filtering parameters similar to those in users.find() such 
+as username, email, firstName, lastName and so on to count only users that match specific criteria.
+Searching by attributes is only available from Keycloak > 15
+@parameters:
+ - filter is a JSON object that accepts filter parameters, such as { email: 'test@keycloak.org' }
+```js
+ // Return the total number of registered users
+const user_count = await keycloakAdapter.kcAdminClient.users.count();
+console.log('User found:', user_count);
+
+// Return the number of users with the name "John" 
+user_count = await keycloakAdapter.kcAdminClient.users.count({name:'Jhon'});
+console.log('User found:', user_count);
+ ```
+
+
+##### `function update(searchParams,userRepresentation)`
+update method is used to update the details of a specific user in a Keycloak realm.
+It requires at least the user’s ID(searchParams) and the updated data(userRepresentation). 
+You can modify fields like firstName, lastName, email, enabled, and more.
+@parameters:
+ - searchParams: is a JSON object that accepts filter parameters
+   - id: [Required] the user ID to update
+   - realm [Optional] the realm name (defaults to current realm)
+ - userRepresentation: An object containing the user fields to be updated.
+```js
+ // Update user with id:'user-id'
+const user_count = await keycloakAdapter.kcAdminClient.users.update({ id: 'user-Id' }, {
+    firstName: 'John',
+    lastName: 'Updated',
+    enabled: true,
+});
+ ```
+
+##### `function resetPassword(newCredentialsParameters)`
+resetPassword method is used to set a new password for a specific user. 
+This action replaces the user's existing credentials. You can also set whether the user is required to 
+change the password on next login.
+@parameters:
+ - newCredentialsParameters: is a JSON object that accepts filter parameters
+   - id: [Required] the user ID to update
+   - realm [Optional] the realm name (defaults to current realm)
+   - credential: An object containing the new user credentials
+     - temporary: true or false. Whether the new password is temporary (forces user to reset at next login). 
+     - type: a String value set to "password"
+     - value: a String containing new password to be set
+
+```js
+ // Update user with id:'user-id'
+const user = await keycloakAdapter.kcAdminClient.users.resetPassword({ 
+    id: userId,
+    credential:{
+        temporary: false,
+        type: "password",
+        value: "test"  
+    } 
+    });
+ ```
+##### `function getCredentials(filter)`
+getCredentials() method retrieves the list of credentials (e.g., passwords, OTPs, WebAuthn, etc.) 
+currently associated with a given user in a specific realm.
+This is useful for auditing, checking what types of credentials a user has set up, 
+or managing credentials such as password reset, WebAuthn deletion, etc.
+@parameters:
+ - getCredentials: is a JSON object that accepts filter parameters
+   - id: [Required] the user ID to update
+   - realm [Optional] the realm name (defaults to current realm)
+```js
+ // get credentials info for user whose id is 'user-id'
+const ressult = await keycloakAdapter.kcAdminClient.users.getCredentials({id: 'user-id'});
+console.log(ressult);
+ ```
+
+
+##### `function getCredentials(filter)`
+getCredentials() method retrieves the list of credentials (e.g., passwords, OTPs, WebAuthn, etc.) 
+currently associated with a given user in a specific realm.
+This is useful for auditing, checking what types of credentials a user has set up, 
+or managing credentials such as password reset, WebAuthn deletion, etc.
+@parameters:
+ - getCredentials: is a JSON object that accepts filter parameters
+   - id: [Required] the user ID to update
+   - realm [Optional] the realm name (defaults to current realm)
+```js
+ // get credentials info for user whose id is 'user-id'
+const ressult = await keycloakAdapter.kcAdminClient.users.getCredentials({id: 'user-id'});
+console.log(ressult);
+ ```
+
+##### `function deleteCredential(accountInfo)`
+deleteCredential method allows you to delete a specific credential (e.g., password, OTP, WebAuthn, etc.) from a user. 
+This is useful when you want to invalidate or remove a credential, forcing the user to reconfigure or reset it.
+@parameters:
+ - accountInfo: is a JSON object that accepts this parameters
+   - id: [Required] the user ID to update
+   - credentialId [Required] the credentils identifier
+```js
+ // delete credentials info for user whose id is 'user-id'
+const ressult = await keycloakAdapter.kcAdminClient.users.deleteCredential({
+    id: 'user-id',
+    credentialId: credential.id
+});
  ```
 
 ##### `function getProfile()`
@@ -913,6 +1056,90 @@ and other attributes associated with the user profile in the Keycloak realm.
  const userProfile = await keycloakAdapter.kcAdminClient.users.getProfile();
  console.log('User profile dicionary:', userProfile);
  ```
+
+##### `function addToGroup(parameters)`
+Adds a user to a specific group within the realm.
+@parameters:
+- parameters: is a JSON object that accepts this parameters 
+  - id [required]: The user ID of the user you want to add to the group. 
+  - groupId [required]: The group ID of the group the user should be added to.
+```js
+ // create a role name called my-role
+ const userGroup = await keycloakAdapter.kcAdminClient.users.addToGroup({
+     groupId: 'group-id',
+     id: 'user-id',
+});
+ console.log('User group info:', userGroup);
+ ```
+
+##### `function countGroups(filter)`
+Retrieves the number of groups that a given user is a member of.
+@parameters:
+- filter is a JSON object that accepts filter parameters, such as { id: '' }
+  - id: [required] The user ID of the user whose group membership count you want to retrieve.
+  - search: [optional] a String containing group nme such "cool-group",
+```js
+ // Return the total number of user groups
+const user_count = await keycloakAdapter.kcAdminClient.users.countGroups({id:'user-id'});
+console.log('Groups found:', user_count);
+
+ ```
+
+
+##### `function getUserStorageCredentialTypes()`
+For more details, see the keycloak-admin-client package in the Keycloak GitHub repository.
+
+##### `function updateCredentialLabel()`
+For more details, see the keycloak-admin-client package in the Keycloak GitHub repository.
+
+
+
+### `entity groups`
+The groups entity allows you to manage groups in a Keycloak realm. 
+Groups are collections of users and can have roles and attributes assigned to them. 
+Groups help organize users and assign permissions in a scalable way
+
+#### `entity groups functions`
+##### `function create(role_dictionary)`
+Create a new group in the current realme
+```js
+ // create a group called my-group
+ keycloakAdapter.kcAdminClient.groups.create({name: "my-group"});
+ ```
+
+##### `function find(filter)`
+find method is used to retrieve a list of groups in a specific realm.
+It supports optional filtering parameters.
+Searching by attributes is only available from Keycloak > 15
+@parameters:
+- filter: parameter provided as a JSON object that accepts the following filter:
+    - {builtin attribute}: To find groips by builtin attributes such as name, id
+    - max: A pagination parameter used to define the maximum number of groups to return (limit).
+    - first: A pagination parameter used to define the number of groups to skip before starting to return results (offset/limit).
+```js
+ // find a 100 groups
+const groups = await keycloakAdapter.kcAdminClient.groups.find({ max: 100 });
+if(groups) console.log('Groups found:', groups);
+else console.log('Groups not found');
+
+// find a 100 groups and skip the first 50
+groups = await keycloakAdapter.kcAdminClient.groups.find({ max: 100, first:50 });
+if(groups) console.log('Groups found:', groups);
+else console.log('Groups not found');
+ ```
+
+##### `function findOne(filter)`
+findOne is method used to retrieve a specific group's details by their unique identifier (id) within a given realm.
+It returns the full group representation if the group exists.
+```js
+ // find a group with id:'group-id'
+const group = await keycloakAdapter.kcAdminClient.groups.findOne({ id: 'group-id' });
+if(group) console.log('Group found:', group);
+else console.log('Group not found');
+ ```
+
+
+
 
 ### `entity roles`
 The roles entity refers to Keycloak's roles management functionality, part of the Admin REST API. 
