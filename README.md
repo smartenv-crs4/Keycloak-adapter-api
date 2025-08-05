@@ -3,7 +3,7 @@
 An adapter API to seamlessly integrate **Node.js Express** applications with **Keycloak** for authentication and authorization using **OpenID Connect (OIDC)**.
 
 This middleware provides route protection, token validation, user role management, and easy access to Keycloak-secured APIs. Ideal for securing RESTful services, microservices, and Express-based backends.
-it is based 'keycloak-connect', 'express-session') and "@keycloak/keycloak-admin-client"
+it is based on 'keycloak-connect', 'express-session' and '@keycloak/keycloak-admin-client'
 ---
 
 ## 📦 Features
@@ -877,6 +877,8 @@ For example:
 // find is the method used to retrieve the list of users.
  keycloakAdapter.kcAdminClient.users.find();
  ```
+Credits to @keycloak/keycloak-admin-client. 
+This admin function is built on top of it. For more details, please refer to the official repository.
 
 ### `entity realm`
 
@@ -1071,19 +1073,404 @@ Adds a user to a specific group within the realm.
 });
  console.log('User group info:', userGroup);
  ```
+##### `function delFromGroup(parameters)`
+Removes a user from a specific group in Keycloak.
+@parameters:
+- parameters: is a JSON object that accepts this parameters 
+  - id [required]: The user ID of the user you want to remove to the group. 
+  - groupId [required]: The group ID of the group the user should be removed to.
+```js
+ // create a role name called my-role
+ const userGroup = await keycloakAdapter.kcAdminClient.users.delFromGroup({
+     groupId: 'group-id',
+     id: 'user-id',
+});
+ console.log('User group info:', userGroup);
+ ```
 
 ##### `function countGroups(filter)`
 Retrieves the number of groups that a given user is a member of.
 @parameters:
 - filter is a JSON object that accepts filter parameters, such as { id: '' }
   - id: [required] The user ID of the user whose group membership count you want to retrieve.
-  - search: [optional] a String containing group nme such "cool-group",
+  - search: [optional] a String containing group name such "cool-group",
 ```js
  // Return the total number of user groups
 const user_count = await keycloakAdapter.kcAdminClient.users.countGroups({id:'user-id'});
 console.log('Groups found:', user_count);
 
  ```
+##### `function listGroups(filter)`
+Returns the list of groups that a given user is a member of.
+@parameters:
+- filter is a JSON object that accepts filter parameters, such as { id: '' }
+  - id: [required] The user ID of the user whose group membership you want to retrieve.
+  - search: [optional] a String containing group name such "cool-group",
+```js
+ // Return the total number of user groups
+const user_count = await keycloakAdapter.kcAdminClient.users.listGroups({id:'user-id'});
+console.log('Groups found:', user_count);
+
+ ```
+
+
+##### `function addRealmRoleMappings(roleMapping)`
+Assigns one or more realm-level roles to a user.    
+Returns a promise that resolves when the roles are successfully assigned. No return value on success.
+
+@parameters:
+- roleMapping is a JSON object that accepts this parameters:
+  - id: [required] The ID of the user to whom the roles will be assigned..
+  - roles: [required] An array of role representations to assign. Each role object should contain at least:
+    - id: [required] The role Id
+    - name: [required] The role Name
+```js
+ // Assigns one realm-level role to a user whose ID is 'user-id'.
+const user_count = await keycloakAdapter.kcAdminClient.users.addRealmRoleMappings({
+    id: 'user-id',
+    // at least id and name should appear
+    roles: [
+        {
+            id: 'role-id',
+            name: 'role-name'
+        },
+    ],
+});
+console.log(`Assigned realm role role-name to user user-id`);
+ ```
+
+##### `function delRealmRoleMappings(roleMapping)`
+Removes one or more realm-level roles from a specific user.
+Only roles that were directly assigned to the user can be removed with this method.
+This method does not affect composite roles. It only removes directly assigned realm roles.
+
+@parameters:
+- roleMapping is a JSON object that accepts this parameters:
+    - id: [required] The ID of the user to whom the roles will be removed..
+    - roles: [required] An array of role representations to remove. Each role object should contain at least:
+        - id: [required] The role Id
+        - name: [required] The role Name
+```js
+ // remove one realm-level role to a user whose ID is 'user-id'.
+const roles_remove = await keycloakAdapter.kcAdminClient.users.delRealmRoleMappings({
+    id: 'user-id',
+    // at least id and name should appear
+    roles: [
+        {
+            id: 'role-id',
+            name: 'role-name'
+        },
+    ],
+});
+console.log(`realm role role-name to user user-id removed`);
+ ```
+
+
+
+##### `function listAvailableRealmRoleMappings(filter)`
+Retrieves all available realm-level roles that can still be assigned to a specific user.
+These are the roles that exist in the realm but have not yet been mapped to the user.
+
+@parameters:
+- filter is a JSON object that accepts this parameters:
+  - id: [required] The ID of the user for whom to list assignable realm roles.
+```js
+ // Get assignable realm-level roles for user 'user-id'.
+const available_roles = await keycloakAdapter.kcAdminClient.users.listAvailableRealmRoleMappings({
+    id: 'user-id',
+});
+console.log('Assignable realm-level roles for user user-id',available_roles);
+ ```
+
+##### `function listRoleMappings(filter)`
+Retrieves all realm-level and client-level roles that are currently assigned to a specific user.
+
+ - @parameters:
+- filter is a JSON object that accepts this parameters:
+  - id: [required] The user ID for which you want to fetch the assigned role mappings.
+
+@return a promise resolving to an object with two main properties:
+- realmMappings: array of realm-level roles assigned to the user.
+- clientMappings: object containing client roles grouped by client.
+
+```js
+ // Get assigned roles for user 'user-id'.
+const roleMappings = await keycloakAdapter.kcAdminClient.users.listRoleMappings({
+    id: 'user-id',
+});
+console.log(`Realm Roles assigned to user-id:`);
+roleMappings.realmMappings?.forEach((role) => {
+    console.log(`- ${role.name}`);
+});
+
+console.log("Client Role Mappings:");
+for (const [clientId, mapping] of Object.entries(roleMappings.clientMappings || {})) {
+    console.log(`Client: ${clientId}`);
+    mapping.mappings.forEach((role) => {
+        console.log(`  - ${role.name}`);
+    });
+}
+ ```
+
+
+
+##### `function listRealmRoleMappings(filter)`
+Retrieves the realm-level roles that are currently assigned to a specific user.
+Unlike listRoleMappings, this method focuses only on realm roles and excludes client roles.
+
+ - @parameters:
+- filter is a JSON object that accepts this parameters:
+  - id: [required] The user ID for which you want to fetch the assigned role mappings.
+
+@return a promise resolving to an array of role objects (realm roles)
+
+
+```js
+ // Get assigned roles for user 'user-id'.
+const roleMappings = await keycloakAdapter.kcAdminClient.users.listRealmRoleMappings({
+    id: 'user-id',
+});
+console.log(`Realm roles assigned to user user-id:`);
+roleMappings.forEach((role) => {
+    console.log(`- ${role.name}`);
+});
+ ```
+
+
+##### `function listCompositeRealmRoleMappings(filter)`
+Retrieves the list of composite realm-level roles that are effectively assigned to a user.
+Composite roles include both directly assigned realm roles and any roles inherited through composite role structures.
+
+ - @parameters:
+- filter is a JSON object that accepts this parameters:
+  - id: [required] The user ID for which you want to fetch the assigned role mappings.
+
+@return a promise resolving to an array of role objects (realm roles)
+
+
+```js
+ // Get assigned roles for user 'user-id'.
+const roleMappings = await keycloakAdapter.kcAdminClient.users.listCompositeRealmRoleMappings({
+    id: 'user-id',
+});
+console.log(`Composite realm roles assigned to user user-id:`);
+roleMappings.forEach((role) => {
+    console.log(`- ${role.name}`);
+});
+ ```
+
+
+##### `function addClientRoleMappings(role_mapping)`
+Assigns one or more client-level roles to a user. 
+This method adds role mappings from a specific client to the given user,
+allowing the user to have permissions defined by those client roles.
+
+ - @parameters:
+- role_mapping is a JSON object that accepts this parameters:
+  - id: [required] The ID of the user to whom roles will be assigned. 
+  - clientUniqueId:[required] The internal ID of the client that owns the roles.
+  - roles: [required] Array of role objects representing the client roles to assign, at least id and name should appear:
+    - id:[required]: role identifier
+    - name:[required]: role name
+    - [optional] Other fields
+
+```js
+ // Add client roles for user 'user-id'.
+const roleMappings = await keycloakAdapter.kcAdminClient.users.addClientRoleMappings({
+    id: 'user-id',
+    clientUniqueId: 'internal-client-id',
+    
+    // at least id and name should appear
+    roles: [{
+            id: 'role-id',
+            name: 'role-name',
+    }]
+});
+ ```
+
+##### `function listAvailableClientRoleMappings(filter)`
+Retrieves a list of client roles that are available to be assigned to a specific user,
+meaning roles defined in a client that the user does not yet have assigned. 
+This is useful for determining which roles can still be mapped to the user.
+
+ - @parameters:
+- filter is a JSON object that accepts this parameters:
+  - id: [required] The ID of the user
+  - clientUniqueId:[required] The internal ID of the client (not the clientId string)
+```js
+
+// Get all user 'user-id' available roles for client 'internal-client-id'
+const availableRoles = await keycloakAdapter.kcAdminClient.users.listAvailableClientRoleMappings({
+    id: 'user-id',
+    clientUniqueId: 'internal-client-id'
+ });
+ console.log('Available roles for assignment:', availableRoles.map(r => r.name));
+ ```
+
+
+
+##### `function listCompositeClientRoleMappings(filter)`
+Retrieves all composite roles assigned to a specific user for a given client. 
+Composite roles are roles that include other roles. 
+This method returns not only directly assigned roles, but also roles inherited through composite definitions for that client.
+
+ - @parameters:
+- filter is a JSON object that accepts this parameters:
+  - id: [required] The ID of the user
+  - clientUniqueId:[required] The internal ID of the client (not the clientId string)
+```js
+
+ // Get all composite roles assigned to a  user 'user-id' for client 'internal-client-id'
+const availableRoles = await keycloakAdapter.kcAdminClient.users.listCompositeClientRoleMappings({
+    id: 'user-id',
+    clientUniqueId: 'internal-client-id'
+ });
+ console.log('Available composite roles:', availableRoles.map(r => r.name));
+ ```
+
+
+
+##### `function listClientRoleMappings(filter)`
+Retrieves all client-level roles directly assigned to a user for a specific client.
+Unlike composite role mappings, this method only returns the roles that were explicitly 
+assigned to the user from the client, without including roles inherited via composite definitions.
+
+ - @parameters:
+- filter is a JSON object that accepts this parameters:
+  - id: [required] The ID of the user
+  - clientUniqueId:[required] The internal ID of the client (not the clientId string)
+```js
+
+ // Get all roles assigned to a  user 'user-id' for client 'internal-client-id'
+const availableRoles = await keycloakAdapter.kcAdminClient.users.listClientRoleMappings({
+    id: 'user-id',
+    clientUniqueId: 'internal-client-id'
+ });
+ console.log('Available roles:', availableRoles.map(r => r.name));
+ ```
+
+
+##### `function delClientRoleMappings(filter)`
+Removes one or more client-level roles previously assigned to a specific user. 
+This operation unlinks the direct association between the user and the specified roles within the given client.
+
+ - @parameters:
+- filter is a JSON object that accepts this parameters:
+  - id: [required] The ID of the user to whom roles will be removed.
+  - clientUniqueId:[required] The internal ID of the client that owns the roles.
+  - roles: [required] Array of role objects representing the client roles to assign, at least id and name should appear:
+      - id:[required]: role identifier
+      - name:[required]: role name
+      - [optional] Other fields
+```js
+
+ // Get all roles assigned to a  user 'user-id' for client 'internal-client-id'
+await keycloakAdapter.kcAdminClient.users.delClientRoleMappings({
+    id: 'user-id',
+     clientUniqueId: 'internal-client-id',
+     roles: [{
+         id: 'role-id',
+        name: 'role-name',
+     }],
+ });
+ console.log('Roles successfully removed from user.');
+ ```
+
+
+
+##### `function listSessions(filter)`
+Retrieves a list of active user sessions for the specified user. 
+Each session represents a login session associated with that user across different clients or devices.
+
+ - @parameters:
+- filter is a JSON object that accepts this parameters:
+  - id: [required] The ID of the user whose sessions will be listed.
+  - clientId: [optional] The internal ID of the client that owns the roles.
+```js
+
+ // Get all the user 'user-id' sessions.
+const sessions=await keycloakAdapter.kcAdminClient.users.listSessions({
+    id: 'user-id',
+ });
+ console.log("User 'user-id' sessions:",sessions);
+ ```
+
+
+
+##### `function listOfflineSessions(filter)`
+Retrieves a list of offline sessions for the specified user. 
+Offline sessions represent long-lived refresh tokens that allow clients to obtain new access tokens 
+without requiring the user to be actively logged in.
+
+ - @parameters:
+- filter is a JSON object that accepts this parameters:
+  - id: [required] The ID of the user whose sessions will be listeds
+  - clientId: [optional] The client ID whose sessions are being checked
+```js
+
+ // Get all the user 'user-id' sessions.
+const sessions=await keycloakAdapter.kcAdminClient.users.listOfflineSessions({ 
+    id: 'user-id', 
+    clientId: 'client-id' 
+});
+ console.log("User 'user-id' offline sessions:",sessions);
+ ```
+
+
+
+##### `function logout(filter)`
+Forces logout of the specified user from all active sessions, both online and offline. 
+This invalidates the user’s active sessions and tokens, effectively logging them out from all clients.
+
+ - @parameters:
+- filter is a JSON object that accepts this parameters:
+  - id: [required] The ID of the user whose sessions will be closed
+```js
+
+ // Get all the user 'user-id' sessions.
+const sessions=await keycloakAdapter.kcAdminClient.users.logout({ 
+    id: 'user-id',
+});
+ console.log('All User session closed');
+ ```
+
+
+##### `function listConsents(filter)`
+Retrieves the list of OAuth2 client consents that the specified user has granted.
+Each consent represents a client application that the user has authorized to access their data with specific scopes.
+
+ - @parameters:
+- filter is a JSON object that accepts this parameters:
+  - id: [required] The ID of the user whose client consents can be retrieved.
+```js
+
+ // Retrieves the list of OAuth2 client consents that the specified user has granted.
+const listConsents=await keycloakAdapter.kcAdminClient.users.listConsents({ 
+    id: 'user-id',
+});
+ console.log('All User consents:',listConsents);
+ ```
+
+
+
+##### `function revokeConsent(filter)`
+Revokes a previously granted OAuth2 client consent for a specific user. 
+This operation removes the authorization a user has given to a client, 
+effectively disconnecting the client from the user's account and invalidating associated tokens.
+
+- @parameters:
+- filter is a JSON object that accepts this parameters:
+    - id: [required] T	The ID of the user whose consent should be revoked
+    - clientId: TThe client ID for which the consent should be revoked
+```js
+
+ // Retrieves the list of OAuth2 client consents that the specified user has granted.
+await keycloakAdapter.kcAdminClient.users.revokeConsent({
+    id: 'user-id',
+    clientId: 'client-id',
+ });
+ ```
+
 
 
 ##### `function getUserStorageCredentialTypes()`
@@ -1092,6 +1479,129 @@ For more details, see the keycloak-admin-client package in the Keycloak GitHub r
 ##### `function updateCredentialLabel()`
 For more details, see the keycloak-admin-client package in the Keycloak GitHub repository.
 
+
+
+### `entity clients`
+Clients entity provides a set of methods to manage clients (i.e., applications or services) within a realm. 
+Clients represent entities that want to interact with Keycloak for authentication or authorization (e.g., web apps, APIs).
+
+
+#### `entity clients functions`
+
+
+##### `function create(client_dictionary)`
+Creates a new client with the provided configuration
+@parameters:
+- client_dictionary:  An object(JSON) of type ClientRepresentation, containing the configuration for the new client.
+    - clientId: [required] string	The unique identifier for the client (required). 
+    - name:	[required] string	A human-readable name for the client. 
+    - enabled: [optional]	boolean	Whether the client is enabled. Default is true. 
+    - publicClient:	[optional] boolean	Whether the client is public (no secret). 
+    - secret:	[optional] string	Client secret (if not a public client). 
+    - redirectUris:	[optional] string[]	List of allowed redirect URIs (for browser-based clients). 
+    - baseUrl:	[optional] string	Base URL of the client. 
+    - protocol:	[optional] string	Protocol to use (openid-connect, saml, etc.). 
+    - standardFlowEnabled:	[optional] boolean	Enables standard OAuth2 Authorization Code Flow. 
+    - ....[optional] Other client fields 
+
+```js
+ // create a client called my-client
+ const client= await keycloakAdapter.kcAdminClient.clients.create({name: "my-client", id:"client-id"});
+console.log("New Client Created:", client);
+ ```
+
+
+
+##### `function find(filter)`
+Retrieves a list of all clients in the current realm, optionally filtered by query parameters. 
+This method is useful for listing all registered applications or services in Keycloak or searching 
+for a specific one using filters like clientId.
+@parameters:
+- filter: A JSON structure used to filter results based on specific fields:
+  - clientId: [optional] string filter to search clients by their clientId. 
+  - viewableOnly: [optional] boolean value.	If true, returns only clients that the current user is allowed to view. 
+  - first:[optional] Pagination: index of the first result to return. 
+  - max:[optional]	Pagination: maximum number of results to return.
+```js
+ // Get client by ID: 'client-id'
+const clients= await keycloakAdapter.kcAdminClient.clients.find({ id:"client-id"});
+console.log("Clients:", clients);
+ ```
+
+
+##### `function del(filter)`
+Deletes a client from the realm using its internal ID. 
+This operation is irreversible and will remove the client and all its associated roles, permissions, and configurations.
+@parameters:
+- filter: A JSON structure used to filter results based on specific fields:
+  - id: [required] The internal ID of the client to delete (not clientId)
+```js
+ // delete client by ID: 'internal-client-id'
+const clients= await keycloakAdapter.kcAdminClient.clients.del({ id:"internal-client-id"});
+console.log(`Client successfully deleted.`);
+ ```
+
+
+
+
+##### `function createRole(role_parameters)`
+Creates a new client role under a specific client. 
+Client roles are roles associated with a specific client (application), and are useful 
+for fine-grained access control within that client.
+@parameters:
+- role_parameters: JSON structure that defines the role like:
+    - id: [required] The internal ID of the client where the role will be created. 
+    - name: [required] Name of the new role. 
+    - description: [optional] Optional description of the role.
+    - [optional] Other role fields
+```js
+ // Creates a new client role under a specific client.
+const role= await keycloakAdapter.kcAdminClient.clients.createRole({
+    id: 'client-id',
+    name: 'roleName'
+});
+console.log("Client role:", role);
+ ```
+
+
+
+
+##### `function findRole(filter)`
+Retrieves a specific client role by name from a given client. 
+This is useful when you want to inspect or verify the properties of a role defined within a particular client.
+@parameters:
+- filter: JSON structure that defines the filter parameters:
+    - id: [required] The internal ID of the client (not the clientId string) where the role is defined.
+    - roleName: [required] The name of the client role you want to find.
+
+```js
+ // Get client role by ID: 'internal-client-id'
+const role= await keycloakAdapter.kcAdminClient.clients.findRole({
+    id: 'internal-client-id',
+    roleName:'roleName'
+});
+console.log("Client role:", role);
+ ```
+
+
+
+##### `function delRole(filter)`
+Deletes a client role by its name for a specific client.
+This permanently removes the role from the specified client in Keycloak.
+A promise that resolves to void if the deletion is successful. 
+If the role does not exist or the operation fails, an error will be thrown.
+@parameters:
+- filter: JSON structure that defines the filter parameters:
+    - id: [required] The internal ID of the client (not the clientId string) where the role is defined.
+    - roleName: [required] The name of the client role you want to delete.
+
+```js
+ // delere client role by ID: 'internal-client-id'
+const role= await keycloakAdapter.kcAdminClient.clients.delRole({
+    id: 'internal-client-id',
+    roleName:'roleName'
+});
+ ```
 
 
 ### `entity groups`
@@ -1136,6 +1646,18 @@ It returns the full group representation if the group exists.
 const group = await keycloakAdapter.kcAdminClient.groups.findOne({ id: 'group-id' });
 if(group) console.log('Group found:', group);
 else console.log('Group not found');
+ ```
+
+
+##### `function del(filter)`
+Deletes a group from the realm.
+Return a promise that resolves when the group is successfully deleted. No content is returned on success.
+@parameters:
+- filter: parameter provided as a JSON object that accepts the following filter:
+    - id: The ID of the group to delete.
+```js
+ // delete a group with id:'group-id'
+const group = await keycloakAdapter.kcAdminClient.groups.del({ id: 'group-id' });
  ```
 
 
