@@ -881,6 +881,440 @@ Credits to @keycloak/keycloak-admin-client.
 This admin function is built on top of it. For more details, please refer to the official repository.
 
 ### `entity realm`
+The realms property provides access to all administrative operations related to Keycloak realms. 
+A realm in Keycloak is a fundamental concept that acts as an isolated tenant: 
+ach realm manages its own set of users, roles, groups, and clients independently.
+#### `entity realm functions`
+
+##### `function create(realm-dictionary)`
+create is a method used to create a new realm.
+This method accepts a realm representation object containing details such as is, name
+@parameters:
+- realm-dictionary: is a JSON object that accepts filter parameters
+  - id:[required] The internal ID of the realm. If omitted, Keycloak uses the realm name as the ID.
+  - realm:[required] The name of the realm to create.
+  - Additional optional properties can be passed to configure the realm (e.g., enabled, displayName, etc.).
+
+```js
+ // create a new realm
+ const realm = await keycloakAdapter.kcAdminClient.realms.create({
+     id: "realm-id",
+     realm: "realmName",
+ });
+ ```
+
+##### `function update(filter,realm-dictionary)`
+Updates the configuration of an existing realm. 
+You can use this method to modify settings such as login behavior, themes, token lifespans, and more.
+@parameters:
+- filter:is a JSON object that accepts filter parameters
+  - realm:[required] The identifier of the realm you want to update.
+- realm-dictionary: An object containing the updated realm configuration. Only the fields you want to change need to be included.
+  - realm properties that can be passed to update the realm (e.g., enabled, displayName, etc.).
+
+```js
+ // update a realm
+ await keycloakAdapter.kcAdminClient.realms.update(
+     { realm: 'realm-name' },
+     {
+         displayName: "test",
+     }
+ );
+ ```
+
+
+##### `function del(filter)`
+Deletes a specific realm from the Keycloak server. 
+This operation is irreversible and removes all users, clients, roles, groups, and settings associated with the realm.
+@parameters:
+- filter: is a JSON object that accepts filter parameters
+  - realm:[required] The name of the realm to delete.
+
+```js
+ // delete 'realmeName' realm
+ const realm = await keycloakAdapter.kcAdminClient.realms.del({
+     realm: "realmName",
+ });
+ ```
+
+##### `function find(filter)`
+Retrieves a list of all realms configured in the Keycloak server. 
+This includes basic metadata for each realm such as ID and display name, but not the full configuration details.
+This method does not take any parameters.
+
+```js
+ // delete 'realmeName' realm
+ const realms = await keycloakAdapter.kcAdminClient.realms.find();
+console.log("Retrieved realms:",realms);
+ ```
+
+##### `function findOne(filter)`
+Retrieves the full configuration and metadata of a specific realm by its name (realm ID). 
+This includes settings like login policies, themes, password policies, etc.
+@parameters:
+- filter: is a JSON object that accepts filter parameters
+  - realm:[required] The name (ID) of the realm you want to retrieve.
+
+```js
+ // delete 'realmeName' realm
+ const realmConfig = await keycloakAdapter.kcAdminClient.realms.findOne({
+     realm: "realmName",
+ });
+console.log("Retrieved realm:",realmConfig);
+ ```
+
+
+##### `function partialImport(configuration)`
+Performs a partial import of realm configuration into a Keycloak realm. 
+This allows you to import users, roles, groups, clients, and other components without replacing the entire realm.
+It’s useful for incremental updates or merging configuration pieces.
+@parameters:
+- configuration: is a JSON object that accepts filter parameters
+  - realm:[required] The name of the realm where the data should be imported.
+  - representation:[required] A JSON object representing part of the realm configuration to be imported(can include users, roles, groups, clients, etc.).
+    - ifResourceExists:[required] Defines the behavior when an imported resource already exists in the target realm.
+        Options are:
+      - 'FAIL' – the operation fails if a resource already exists.
+      - 'SKIP' – existing resources are skipped.
+      - 'OVERWRITE' – existing resources are overwritten.
+    - other configuration to be imported like users, roles, groups ...
+
+```js
+ // import configuration
+const roleToImport: PartialImportRealmRepresentation = {
+    ifResourceExists: "FAIL",
+    roles: {
+        realm: [
+            {
+                id: "9d2638c8-4c62-4c42-90ea-5f3c836d0cc8",
+                name: "myRole",
+                scopeParamRequired: false,
+                composite: false,
+            },
+        ],
+    },
+};
+// partial realm import 
+const result = await keycloakAdapter.kcAdminClient.realms.partialImport({
+    realm: 'my-realm',
+    rep: roleToImport,
+});
+```
+
+##### `function export(configuration)`
+Exports the configuration of a specific realm. 
+This method returns the full realm representation in JSON format, including roles, users, clients, groups, and other components depending on the provided options.
+@parameters:
+- configuration: is a JSON object that accepts filter parameters
+  - realm:[required] The name of the realm to export.
+  - exportClients: [optional] boolean, Whether to include clients in the export. Default: true. 
+  - exportGroupsAndRoles: [optional] boolean,  Whether to include groups and roles in the export. Default: true.
+
+```js
+ 
+//  realm export 
+const exportedRealm = await keycloakAdapter.kcAdminClient.realms.export({
+    realm: 'my-realm',
+    exportClients: true,      // optional
+    exportGroupsAndRoles: true, // optional
+});
+// print exportedRealm
+console.log(JSON.stringify(exportedRealm, null, 2));
+```
+
+##### `function getClientRegistrationPolicyProviders(configuration)`
+Fetches the list of available client registration policy providers for the specified realm.
+These providers define how new clients can be registered and what rules or validations apply (e.g., allowed scopes, required attributes).
+@parameters:
+- configuration: is a JSON object that accepts filter parameters
+  - realm:[required] The name of the realm where you want to list client registration policy providers.
+
+```js
+ 
+//  get Client Registration Policy Providers
+await keycloakAdapter.kcAdminClient.realms.getClientRegistrationPolicyProviders({
+    realm: currentRealmName,
+});
+```
+
+
+##### `function createClientsInitialAccess(realmFilter,options)`
+Creates a new Initial Access Token for dynamic client registration. 
+This token allows clients to register themselves with the realm using the Dynamic Client Registration API. Useful when you want to allow programmatic client creation in a controlled way.
+@parameters:
+- realmFilter: is a JSON object that accepts filter parameters
+  - realm:[required] The name of the realm where the initial access token should be created.
+- options: is a JSON object that accepts filter parameters
+  - count [required]  Number of times this token can be used to register new clients. 
+  - expiration [required] Time (in seconds) after which the token expires. 0 is unlimited
+
+ 
+@return - Returns an object containing:
+- id: internal ID of the token 
+- token: the actual token string to be used during dynamic registration 
+- timestamp: Creation timestamp 
+- expiration: Expiration time in seconds 
+- count: Maximum allowed uses 
+- remainingCount: How many uses are left
+```js
+//  get Client Registration Policy Providers with oount=1 and unlimited expiration time
+const initialAccess= await keycloakAdapter.kcAdminClient.realms.realms.createClientsInitialAccess(
+    { realm: currentRealmName },
+    { count: 1, expiration: 0 },
+);
+
+console.log("Initial Access Token:", initialAccess.token);
+```
+
+##### `function getClientsInitialAccess(realmFilter)`
+Retrieves all existing Initial Access Tokens for dynamic client registration in a given realm. 
+These tokens are used to allow programmatic or automated registration of clients via the Dynamic Client Registration API.
+@parameters:
+- realmFilter: is a JSON object that accepts filter parameters
+  - realm:[required] The name of the realm from which to list all initial access tokens.
+ 
+@return - An array of objects representing each initial access token. Each object contains:
+- id: internal ID of the token 
+- token: the actual token string to be used during dynamic registration 
+- timestamp: Creation timestamp
+- expiration: Expiration time in seconds
+- count: Maximum allowed uses
+- remainingCount: How many uses are left
+```js
+//  get get Clients Initial Access list
+const tokens= await keycloakAdapter.kcAdminClient.realms.getClientsInitialAccess({ realm:'realm-id'});
+console.log("Initial Access Tokens:", tokens);
+```
+
+
+
+##### `function delClientsInitialAccess(realmFilter)`
+Deletes a specific Initial Access Token used for dynamic client registration in a given realm.
+This revokes the token, preventing any future use.
+@parameters:
+- realmFilter: is a JSON object that accepts filter parameters
+  - realm:[required] The name of the realm where the token was created.
+  - id:[required] The ID of the initial access token you want to delete.
+```js
+//  delete Clients Initial Access
+await keycloakAdapter.kcAdminClient.realms.delClientsInitialAccess({
+    realm: 'realm-id',
+    id: 'initial-access-token-id',
+});
+```
+
+
+##### `function addDefaultGroup(realmFilter)`
+Adds an existing group to the list of default groups for a given realm.
+Users created in this realm will automatically be added to all default groups.
+@parameters:
+- realmFilter: is a JSON object that accepts filter parameters
+  - realm:[required] The name of the realm where the default group will be set.
+  - id:[required] The ID of the group to be added as a default group
+```js
+//  get get Clients Initial Access list
+await keycloakAdapter.kcAdminClient.realms.addDefaultGroup({
+    realm: 'realm-id',
+    id: 'default-group-id',
+});
+```
+
+##### `function removeDefaultGroup(realmFilter)`
+Removes a group from the list of default groups in a realm. 
+Default groups are automatically assigned to new users when they are created.
+@parameters:
+- realmFilter: is a JSON object that accepts filter parameters
+  - realm:[required] The name of the realm from which to remove the default group.
+  - id:[required] The ID of the group you want to remove from the default list.
+```js
+//  remove from 'realm-id' the group 'default-group-id'
+await keycloakAdapter.kcAdminClient.realms.removeDefaultGroup({
+    realm: 'realm-id',
+    id: 'default-group-id',
+});
+```
+
+
+##### `function getDefaultGroups(realmFilter)`
+Retrieves a list of all default groups for a specified realm.
+These are the groups that new users will automatically be added to upon creation.
+@parameters:
+- realmFilter: is a JSON object that accepts filter parameters
+  - realm:[required] The name of the realm from which to retrieve default groups.
+  
+```js
+//  get 'realm-id' default groups
+const defaultGroups = await keycloakAdapter.kcAdminClient.realms.getDefaultGroups({
+    realm: 'realm-id',
+});
+console.log(defaultGroups);
+```
+
+
+##### `function getGroupByPath(realmFilter)`
+Retrieves a group object by specifying its hierarchical path in a realm. 
+This is useful when you know the group’s full path (e.g., /parent/child) but not its ID.
+@parameters:
+- realmFilter: is a JSON object that accepts filter parameters
+  - realm:[required] The name of the realm where the group is located.
+  - path:[required] TThe full hierarchical path to the group, starting with a slash (/). For example: /developers/frontend.
+  
+  
+```js
+//  get 'realm-id' group by Path
+const defaultGroups = await keycloakAdapter.kcAdminClient.realms.getGroupByPath({
+    realm: 'realm-id',
+    path: 'realm-name-path'
+});
+console.log(defaultGroups);
+```
+
+
+
+##### `function getConfigEvents(realmFilter)`
+Retrieves the event configuration settings for a specific realm.
+This includes settings related to the event listeners, enabled event types, admin events, and more.
+Useful for auditing and tracking activities inside Keycloak.
+@parameters:
+- realmFilter: is a JSON object that accepts filter parameters
+    - realm:[required] The name of the realm from which to retrieve the event configuration.
+```js
+//  get Config Events
+const config= await keycloakAdapter.kcAdminClient.realms.getConfigEvents({
+    realm: 'realm-id',
+});
+console.log(config);
+/* config example:
+{
+  eventsEnabled: true,
+  eventsListeners: ['jboss-logging'],
+  enabledEventTypes: ['LOGIN', 'LOGOUT', 'REGISTER'],
+  adminEventsEnabled: true,
+  adminEventsDetailsEnabled: false
+}
+*/
+```
+
+
+
+##### `function updateConfigEvents(realmFilter,configurationEvents)`
+Updates the event configuration for a given realm.
+This includes enabling/disabling events, setting specific event types to track,
+enabling admin event logging, and choosing which event listeners to use.
+@parameters:
+- realmFilter: is a JSON object that accepts filter parameters
+    - realm:[required] The name of the realm where the configuration will be updated.
+- configurationEvents:is a config events JSON object dictionary like this:
+    - eventsEnabled: Enables or disables event logging.
+    - eventsListeners: List of event listener IDs to use (e.g., ["jboss-logging"]).
+    - enabledEventTypes: List of event types to track (e.g., ["LOGIN", "LOGOUT", "REGISTER"]).
+    - adminEventsEnabled: Enables logging for admin events.
+    - adminEventsDetailsEnabled: Includes full details in admin event logs if set to true.
+```js
+//  Update Config Events
+const config= await keycloakAdapter.kcAdminClient.realms.updateConfigEvents(
+    { realm: 'realm-id'},
+    {
+        eventsEnabled: true,
+        eventsListeners: ['jboss-logging'],
+        enabledEventTypes: ['LOGIN', 'LOGOUT', 'UPDATE_PASSWORD'],
+        adminEventsEnabled: true,
+        adminEventsDetailsEnabled: true,
+    });
+```
+
+
+
+##### `function findEvents(realmFilter)`
+Retrieves a list of events that occurred in a specified realm. 
+You can filter the results by event type, user, date range, and other criteria. 
+Useful for auditing login, logout, and other user-related activities.
+@parameters:
+- realmFilter: is a JSON object that accepts filter parameters
+    - realm: [required] The name of the realm to fetch events from. 
+    - client: [optional] Client ID to filter events for a specific client. 
+    - type: [optional] Event type to filter (e.g., LOGIN, REGISTER). 
+    - user: [optional]  User ID to filter events related to a specific user. 
+    - dateFrom: [optional] Start date in ISO 8601 format to filter events. 
+    - dateTo: [optional] End date in ISO 8601 format to filter events. 
+    - first: [optional] Pagination offset. 
+    - max: [optional] Maximum number of events to return.
+```js
+
+//  find 10 realm-id events with a type=LOGIN and dateFrom and dateTo. 
+const config= await keycloakAdapter.kcAdminClient.realms.findEvents({ 
+    realm: 'realm-id',
+    type: 'LOGIN',
+    dateFrom: '2025-08-01T00:00:00Z',
+    dateTo: '2025-08-06T23:59:59Z',
+    max: 10
+});
+```
+
+##### `function findAdminEvents(realmFilter)`
+Retrieves administrative events that occurred in a specific realm. 
+Admin events are triggered by actions such as creating users, updating roles, or modifying realm settings. 
+This is useful for auditing changes made via the admin API or admin console.
+@parameters:
+- realmFilter: is a JSON object that accepts filter parameters
+    - realm: [required] The name of the realm to retrieve admin events from. 
+    - authClient: [optional] Client ID used to perform the action. 
+    - authIpAddress: [optional] IP address of the actor who triggered the event. 
+    - authRealm: [optional] Realm of the actor. 
+    - authUser: [optional] User ID of the admin who performed the action. 
+    - dateFrom: [optional] Start date in ISO 8601 format. 
+    - dateTo: [optional] End date in ISO 8601 format. 
+    - first: [optional] Pagination offset. 
+    - max: [optional] Maximum number of events to retrieve. 
+    - operationTypes: [optional] Filter by operation type (e.g., CREATE, UPDATE, DELETE). 
+    - resourcePath: [optional] Filter events by resource path. 
+    - resourceTypes: [optional] Filter events by resource type (e.g., USER, REALM_ROLE, CLIENT).
+```js
+
+//  find 10 realm-id admin events with a type=CREATE|DELETE and dateFrom and dateTo. 
+const config= await keycloakAdapter.kcAdminClient.realms.findAdminEvents({ 
+    realm: 'realm-id',
+    operationTypes: ['CREATE', 'DELETE'],
+    dateFrom: '2025-08-01T00:00:00Z',
+    dateTo: '2025-08-06T23:59:59Z',
+    max: 10
+});
+```
+
+
+
+##### `function clearEvents(realmFilter)`
+Deletes all user events (not admin events) from the event store of a specific realm. 
+Useful for resetting or cleaning up event logs related to user actions such as logins, logouts, failed login attempts, etc.
+This does not clear administrative events. To remove those, use realms.clearAdminEvents().
+@parameters:
+- realmFilter: is a JSON object that accepts filter parameters
+    - realm: [required] The name of the realm from which to clear user events.
+```js
+
+//  clear realm-id events 
+const config= await keycloakAdapter.kcAdminClient.realms.clearEvents({ 
+    realm: 'realm-id',
+});
+```
+
+
+##### `function clearAdminEvents(realmFilter)`
+Deletes all admin events from the event store of a specific realm. 
+Admin events include actions such as creating users, updating roles, changing client settings, etc., 
+performed by administrators via the Admin Console or Admin REST API.
+@parameters:
+- realmFilter: is a JSON object that accepts filter parameters
+    - realm: [required] The name of the realm from which to clear administrative events.
+```js
+
+//  clear realm-id admin events 
+const config= await keycloakAdapter.kcAdminClient.realms.clearAdminEvents({ 
+    realm: 'realm-id',
+});
+```
+
+
 
 ### `entity users`
 The roles users refers to Keycloak's users management functionality, part of the Admin REST API.
@@ -1458,9 +1892,10 @@ Revokes a previously granted OAuth2 client consent for a specific user.
 This operation removes the authorization a user has given to a client, 
 effectively disconnecting the client from the user's account and invalidating associated tokens.
 
-- @parameters:
+@parameters:
+
 - filter is a JSON object that accepts this parameters:
-    - id: [required] T	The ID of the user whose consent should be revoked
+    - id: [required] The ID of the user whose consent should be revoked
     - clientId: TThe client ID for which the consent should be revoked
 ```js
 
@@ -1471,6 +1906,90 @@ await keycloakAdapter.kcAdminClient.users.revokeConsent({
  });
  ```
 
+
+
+##### `function impersonation(filter)`
+Initiates an impersonation session for a specific user.
+This allows an administrator to act on behalf of the user, gaining access as if they were logged in as that user. 
+This is typically used for debugging or support purposes.
+Returns an object containing a redirect URL or token used to impersonate the user.
+
+@parameters:
+
+- filter is a JSON object that accepts this parameters:
+    - id: [required] The ID of the user to impersonate.
+```js
+
+ // Impersonate a user whose id is 'user-id'
+await keycloakAdapter.kcAdminClient.users.impersonation({id: 'user-id'},{
+        user: 'user-id', 
+        realm: 'realmeName' 
+});
+ ```
+
+
+##### `function listFederatedIdentities(filter)`
+Retrieves a list of federated identities (external identity providers) associated with a specific user. 
+This is useful if the user has linked their account with external providers like Google, Facebook, etc.
+
+@parameters:
+
+- filter is a JSON object that accepts this parameters:
+    - id: [required] The unique ID of the user for whom you want to fetch the federated identities.
+```js
+
+ // This will return a list of all identity providers that the user has linked to their Keycloak account.
+const federatedIdentities= await keycloakAdapter.kcAdminClient.users.listFederatedIdentities({id: 'user-id'});
+console.log("Federated Identities:", federatedIdentities);
+ ```
+
+
+##### `function addToFederatedIdentity(options)`
+Adds (links) an external identity provider to a specific Keycloak user.
+This is typically used to associate a federated identity (such as a Google or Facebook account) with an existing Keycloak user.
+
+@parameters:
+
+- options is a JSON object that accepts this parameters:
+    - id: [required] The ID of the Keycloak user to whom the federated identity should be added.
+    - federatedIdentityId: [required] The alias of the identity provider (e.g., "google" or "facebook"). 
+    - federatedIdentity [required] An object with the following fields:
+      - identityProvider:[required] The alias of the identity provider. 
+      - userId: [required] The ID of the user in the external identity provider. 
+      - userName: [required] The username in the external identity provider.
+```js
+
+ // Add user whose id is 'user-id' to a deferated 'federatedIdentity-Id' 
+ const federatedIdentity = {
+     identityProvider: "federatedIdentity-Id",
+     userId: "user-id",
+     userName: "username",
+ };
+await keycloakAdapter.kcAdminClient.users.addToFederatedIdentity({
+    id: 'user-id',
+    federatedIdentityId: "federatedIdentity-Id",
+    federatedIdentity:federatedIdentity,
+ });
+ ```
+
+
+##### `function delFromFederatedIdentity(options)`
+Removes (unlinks) a federated identity provider from a specific Keycloak user. 
+This operation dissociates the external identity (e.g., a Google or Facebook account) previously linked to the user.
+
+@parameters:
+
+- options is a JSON object that accepts this parameters:
+    - id: [required] The ID of the Keycloak user from whom the federated identity should be removed.
+    - federatedIdentityId: [required] The alias of the identity provider (e.g., "google" or "facebook").
+```js
+
+ // Remove a user whose id is 'user-id' from federated 'federatedIdentity-Id'
+ await keycloakAdapter.kcAdminClient.users.delFromFederatedIdentity({
+    id: 'user-id',
+    federatedIdentityId: "federatedIdentity-Id",
+ });
+ ```
 
 
 ##### `function getUserStorageCredentialTypes()`
