@@ -1316,6 +1316,386 @@ const config= await keycloakAdapter.kcAdminClient.realms.clearAdminEvents({
 
 
 
+##### `function getUsersManagementPermissions(realmFilter)`
+Retrieves the status and configuration of user management permissions (also known as fine-grained permissions) in a specific realm. 
+This allows you to check whether user management operations (like creating, updating, or deleting users) are protected by specific roles or policies.
+
+@parameters:
+- realmFilter: is a JSON object that accepts filter parameters
+    - realm: [required] The name of the realm for which you want to retrieve the user management permission settings.
+
+Returns an object with information such as:      
+```js
+{
+    enabled: boolean;
+    resource: string;
+    scopePermissions: {
+          
+    }
+}
+```
+if enabled is false, user management operations are not restricted by fine-grained permissions.
+You can enable or configure these permissions using updateUsersManagementPermissions()
+
+```js
+
+//  Get Permissions 
+const permissions= await keycloakAdapter.kcAdminClient.realms.getUsersManagementPermissions({ 
+    realm: 'realm-id',
+});
+console.log(permissions.enabled); // true or false
+```
+
+
+
+##### `function updateUsersManagementPermissions(update-parameters)`
+Enables or disables fine-grained user management permissions in a specified realm. 
+This controls whether operations on users (such as creating, editing, or deleting users)
+are protected using Keycloak's authorization services.
+@parameters:
+- update-parameters: is a JSON object that accepts this parameters
+    - realm: [required] The name of the realm for which you want to update the user management permission settings.
+    - enabled: [required] boolean value to enable or disable permission
+      - true: Activates fine-grained permissions for user management. 
+      - false: Disables fine-grained permissions and falls back to standard admin roles.
+    
+
+Returns an object with information such as:      
+```js
+{
+    enabled: boolean;
+    resource: string;
+    scopePermissions: {
+          
+    }
+}
+```
+
+```js
+//  Update Permissions 
+const permissions= await keycloakAdapter.kcAdminClient.realms.updateUsersManagementPermissions({ 
+    realm: 'realm-id',
+});
+
+console.log(permissions.enabled); // true
+```
+
+
+
+
+##### `function getKeys(filter)`
+Retrieves the realm keys metadata, including public keys, certificates, and active key information 
+used for token signing, encryption, and other cryptographic operations in the specified realm.
+@parameters:
+- filter: is a JSON object that accepts this parameters
+    - realm: [required] The name of the realm for which you want to retrieve key metadata.
+
+Returns a list of keys and related information:
+```
+{
+    keys: [
+            {
+                kid: string;          // Key ID
+                type: string;         // Key type (e.g., RSA, AES)
+                providerId: string;   // Key provider ID
+                providerPriority:     //number;
+                publicKey?: string;   // Base64-encoded public key (if applicable)
+                certificate?: string; // X.509 certificate (if available)
+                algorithm: string;    // Signing algorithm (e.g., RS256)
+                status: string;       // Status (e.g., ACTIVE, PASSIVE)
+                use: string;          // Intended use (e.g., sig for signature, enc for encryption)
+            },
+            ...
+    ]
+}
+```
+
+```js
+//  Get Keys 
+const Keys= await keycloakAdapter.kcAdminClient.realms.getKeys({ 
+    realm: 'realm-id',
+});
+
+console.log(Keys);
+```
+
+
+
+
+##### `function getClientSessionStats(filter)`
+Retrieves statistics about active client sessions in the specified realm. This includes the number of active sessions per client.
+@parameters:
+- filter: is a JSON object that accepts this parameters
+    - realm: [required]  The name of the realm for which you want to retrieve client session statistics.
+
+Returns an array of objects, each representing a client with active sessions
+
+```js
+//  Get Client Session Stats 
+const stats= await keycloakAdapter.kcAdminClient.realms.getClientSessionStats({ 
+    realm: 'realm-id',
+});
+
+console.log(stats);
+/*
+[
+  { clientId: 'frontend-app', active: 5 },
+  { clientId: 'admin-cli', active: 1 },
+  ...
+]
+*/
+```
+
+
+
+##### `function pushRevocation(filter)`
+Immediately pushes a revocation policy to all clients in the specified realm. 
+This forces clients to revalidate tokens, effectively revoking cached access tokens and enforcing updated policies.
+@parameters:
+- filter: is a JSON object that accepts this parameters
+    - realm: [required]  The name of the realm where the revocation should be pushed.
+
+```js
+// push revocaiton to realm realm-id  
+const pushR= await keycloakAdapter.kcAdminClient.realms.pushRevocation({ 
+    realm: 'realm-id',
+});
+
+console.log(pushR);
+```
+
+
+
+##### `function logoutAll(filter)`
+Logs out all active sessions for all users in the specified realm. 
+This invalidates all user sessions, forcing every user to re-authenticate.
+@parameters:
+- filter: is a JSON object that accepts this parameters
+    - realm: [required] The name of the realm from which to log out all users.
+
+```js
+// force all users logout in realm realm-id  
+const logout= await keycloakAdapter.kcAdminClient.realms.logoutAll({ 
+    realm: 'realm-id',
+});
+
+console.log('logout results:',logout);
+```
+
+
+
+##### `function testLDAPConnection(filter,options)`
+Tests the connection to an LDAP server using the provided configuration parameters. 
+This is useful to verify that Keycloak can reach and authenticate with the LDAP server before 
+fully integrating it into the realm configuration.
+@parameters:
+- filter: is a JSON object that accepts this filter parameters
+    - realm: [required] Name of the realm where the LDAP provider is being tested.
+- options: is a JSON object that accepts this parameters
+  - action: [required] Specifies the test type. Use "testConnection" to verify the connection, or "testAuthentication" to verify bind credentials. 
+  - connectionUrl: [required] URL of the LDAP server (e.g., ldap://ldap.example.com:389). 
+  - bindDn: [required] Distinguished Name (DN) used to bind to the LDAP server. 
+  - bindCredential: [required] Password or secret associated with the bind DN. 
+  - useTruststoreSpi: [optional] Whether to use the truststore ("ldapsOnly", "always", etc.). 
+  - connectionTimeout: [optional] Timeout value for the connection (in milliseconds). 
+  - authType: [optional] Type of authentication; usually "simple" or "none".
+
+```js
+//should fail with invalid ldap settings
+    try {
+        await keycloakAdapter.kcAdminClient.realms.testLDAPConnection(
+            { realm: "realm-name" },
+            {
+                action: "testConnection",
+                authType: "simple",
+                bindCredential: "1",
+                bindDn: "1",
+                connectionTimeout: "",
+                connectionUrl: "1",
+                startTls: "",
+                useTruststoreSpi: "always",
+            },
+        );
+        fail("exception should have been thrown");
+    } catch (error) {
+        console.log(error); // exception should have been thrown
+    }
+```
+
+
+
+##### `function ldapServerCapabilities(filter,options)`
+This function queries the LDAP server configured for a specific realm to retrieve and display its supported capabilities.
+It helps validate the connection and understand which LDAP features are available,
+such as supported controls, extensions, authentication mechanisms, and more.
+@parameters:
+- filter: is a JSON object that accepts this filter parameters
+    - realm: [required] Name of the realm where the LDAP provider is being tested.
+- options: is a JSON object that accepts this parameters
+  - action: [required] Specifies the test type. Use "testConnection" to verify the connection, or "testAuthentication" to verify bind credentials. 
+  - connectionUrl: [required] URL of the LDAP server (e.g., ldap://ldap.example.com:389). 
+  - bindDn: [required] Distinguished Name (DN) used to bind to the LDAP server. 
+  - bindCredential: [required] Password or secret associated with the bind DN. 
+  - useTruststoreSpi: [optional] Whether to use the truststore ("ldapsOnly", "always", etc.). 
+  - connectionTimeout: [optional] Timeout value for the connection (in milliseconds). 
+  - authType: [optional] Type of authentication; usually "simple" or "none".
+
+```js
+// should fail with invalid ldap server capabilities
+    try {
+        await keycloakAdapter.kcAdminClient.realms.ldapServerCapabilities(
+            { realm: "realm-name" },
+            {
+                action: "testConnection",
+                authType: "simple",
+                bindCredential: "1",
+                bindDn: "1",
+                connectionTimeout: "",
+                connectionUrl: "1",
+                startTls: "",
+                useTruststoreSpi: "always",
+            },
+        );
+        fail("exception should have been thrown");
+    } catch (error) {
+        console.log(error); // exception should have been thrown
+    }
+```
+
+
+
+##### `function testSMTPConnection(filter,config)`
+Tests the SMTP connection using the provided configuration. 
+This allows you to verify that Keycloak can connect and send emails through the configured 
+SMTP server before applying the settings to the realm.
+@parameters:
+- filter: is a JSON object that accepts this filter parameters
+    - realm: [required] The name of the realm where the SMTP server will be tested.
+- config: An object containing the SMTP server configuration:
+  - from: [required] The sender email address. 
+  - host: [required] The SMTP server host (e.g., smtp.example.com). 
+  - port: [required] The SMTP server port (usually 587, 465, or 25). 
+  - auth: [optional] Whether authentication is required ("true" or "false"). 
+  - user [optional] The username for SMTP authentication. 
+  - password [optional] The password for SMTP authentication. 
+  - replyTo [optional] The reply-to email address. 
+  - starttls [optional] Enable STARTTLS ("true" or "false"). 
+  - ssl [optional] Enable SSL ("true" or "false"). 
+  - envelopeFrom [optional] Envelope sender address.
+
+```js
+// should fail with invalid smtp settings
+    try {
+        await keycloakAdapter.kcAdminClient.realms.testSMTPConnection(
+            { realm: "master" },
+            {
+                from: "test@test.com",
+                host: "localhost",
+                port: 3025,
+            },
+        );
+        fail("exception should have been thrown");
+    } catch (error) {
+        console.log(error); // exception should have been thrown
+    }
+```
+
+
+
+
+##### `function getRealmLocalizationTexts(filter)`
+Retrieves all localization texts (custom messages and labels) defined for a specific realm and locale. 
+Localization texts are used to override default Keycloak UI messages for login forms, error pages, and other user-facing content
+@parameters:
+- filter: is a JSON object that accepts this filter parameters
+    - realm: [required] The name of the realm from which to fetch localization texts.
+    - selectedLocale: [required] The locale code (e.g., 'en', 'it', 'fr', etc.) for which you want to retrieve the translations.
+    - 
+```js
+// Realm localization
+const texts= await keycloakAdapter.kcAdminClient.realms.getRealmLocalizationTexts({ 
+        realm: "realm-id",
+        selectedLocale:'it'
+});
+console.log(texts); 
+```
+
+
+
+
+##### `function addLocalization(filter,value)`
+Adds or updates a localization text (custom UI message or label) for a specific realm and locale in Keycloak. 
+This allows you to override default messages in the login screens and other UI components with custom translations.
+@parameters:
+- filter: is a JSON object that accepts this filter parameters
+    - realm: [required] The name of the realm where the localization should be applied.
+    - selectedLocale: [required] The locale code (e.g., 'en', 'fr', 'it') for which the translation is being added.
+    - key: [required] The message key or identifier to override (e.g., loginAccountTitle, errorInvalidUsername).
+- value: [required]  The actual translated text to associate with the key for the given locale.
+```js
+// should add localization
+await keycloakAdapter.kcAdminClient.realms.addLocalization({ 
+        realm: "realm-id",
+        selectedLocale:'it',
+        key:"theKey"
+},"new Value String for key:theKey");
+
+```
+
+
+
+##### `function getRealmSpecificLocales(filter)`
+Retrieves the list of locales (language codes) for which custom localization texts have been defined in a specific realm. 
+This function is useful to determine which locales have at least one overridden message.
+@parameters:
+- filter: is a JSON object that accepts this filter parameters
+    - realm: [required] The name of the realm for which to fetch the list of custom locales.
+    - selectedLocale: [optional] The locale code (e.g., 'en', 'fr', 'it').
+
+Return An array of locale codes (e.g., ["en", "it", "fr"]) representing the languages that have at least 
+one customized localization entry in the given realm.
+```js
+// should add localization
+await keycloakAdapter.kcAdminClient.realms.addLocalization({
+    realm: "realm-id",
+    selectedLocale:'it',
+    key:"theKey"
+},"new Value String for key:theKey");
+
+// should get localization for specified locale
+const specificLocales= await keycloakAdapter.kcAdminClient.realms.getRealmSpecificLocales({ 
+        realm: "realm-id",
+        selectedLocale: "it",
+});
+
+console.log(specificLocales.thekey); // new Value String for key:theKey
+
+```
+
+
+##### `function deleteRealmLocalizationTexts(filter)`
+Deletes a specific custom localization text entry for a given locale and key within a realm. 
+This is useful when you want to remove a previously added or overridden message from the realm's custom localization.
+@parameters:
+- filter: is a JSON object that accepts this filter parameters
+    - realm: [required] The name of the realm where the localization entry exists.
+    - selectedLocale: [required] The locale code (e.g., 'en', 'fr', 'it').
+    - key: [optional] The key identifying the message you want to remove.
+      If no key is specified, all keys will be removed
+
+Returns void if the deletion is successful. Will throw an error if the entry does not exist or if parameters are invalid.
+
+```js
+// should delete localization for specified locale key 'theKey'
+await keycloakAdapter.kcAdminClient.realms.deleteRealmLocalizationTexts({ 
+        realm: "realm-id",
+        selectedLocale: "it",
+        key:'theKey'
+});
+```
+
+
+
 ### `entity users`
 The roles users refers to Keycloak's users management functionality, part of the Admin REST API.
 It allows you to create, update, inspect, and delete both realm-level and client-level users.
@@ -2007,7 +2387,6 @@ Clients represent entities that want to interact with Keycloak for authenticatio
 
 #### `entity clients functions`
 
-
 ##### `function create(client_dictionary)`
 Creates a new client with the provided configuration
 @parameters:
@@ -2030,7 +2409,6 @@ console.log("New Client Created:", client);
  ```
 
 
-
 ##### `function find(filter)`
 Retrieves a list of all clients in the current realm, optionally filtered by query parameters. 
 This method is useful for listing all registered applications or services in Keycloak or searching 
@@ -2043,7 +2421,19 @@ for a specific one using filters like clientId.
   - max:[optional]	Pagination: maximum number of results to return.
 ```js
  // Get client by ID: 'client-id'
-const clients= await keycloakAdapter.kcAdminClient.clients.find({ id:"client-id"});
+const clients= await keycloakAdapter.kcAdminClient.clients.find({ clientId:"client-id"});
+console.log("Clients:", clients);
+ ```
+
+##### `function findOne(filter)`
+Retrieves detailed information about a specific client within a realm by its unique client ID. 
+This method fetches the client’s configuration, including its settings, roles, protocols, and other metadata.
+@parameters:
+- filter: A JSON structure used to filter results based on specific fields:
+  - id: [optional] 	The unique identifier of the client to retrieve
+```js
+ // Get client by ID: 'client-id'
+const clients= await keycloakAdapter.kcAdminClient.clients.findOne({ id:"client-id"});
 console.log("Clients:", clients);
  ```
 
@@ -2058,6 +2448,27 @@ This operation is irreversible and will remove the client and all its associated
  // delete client by ID: 'internal-client-id'
 const clients= await keycloakAdapter.kcAdminClient.clients.del({ id:"internal-client-id"});
 console.log(`Client successfully deleted.`);
+ ```
+
+
+##### `function update(filter,clientRepresentation)`
+Updates the configuration of an existing client in the realm. 
+You can modify various attributes such as the client name, redirect URIs, protocol, access type, and more.
+@parameters:
+- filter: A JSON structure used to filter results based on specific fields:
+  - id: [required] The unique ID of the client you want to update
+- clientRepresentation: [required] The new configuration for the client
+```js
+ // update single client
+await keycloakAdapter.kcAdminClient.clients.update(
+    { id:"internal-client-id"},
+    {
+        // clientId is required in client update
+        clientId:'client-id',
+        description: "test",
+    }
+);
+console.log(`Client successfully updated.`);
  ```
 
 
@@ -2103,6 +2514,26 @@ console.log("Client role:", role);
  ```
 
 
+##### `function updateRole(filter,roleRepresentation)`
+Updates the attributes of a specific client role in Keycloak. 
+This includes changing the role's name, description, or any associated metadata.
+@parameters:
+- filter: JSON structure that defines the filter parameters:
+    - id: [required] The internal ID of the client (not the clientId string) where the role is defined.
+    - roleName: [required] The name of the client role you want to update
+- roleRepresentation: [required] An object with the updated properties of the role
+```js
+ // update the client role
+await keycloakAdapter.kcAdminClient.clients.updateRole(
+    { id: 'internal-client-id',  roleName:'roleName'},
+    {
+        name: 'newName',
+        description: "test",
+    }
+);
+```
+
+
 
 ##### `function delRole(filter)`
 Deletes a client role by its name for a specific client.
@@ -2123,18 +2554,541 @@ const role= await keycloakAdapter.kcAdminClient.clients.delRole({
  ```
 
 
+##### `function listRoles(filter)`
+Retrieves all roles defined for a specific client within the realm. 
+These roles can be used to assign permissions to users or groups for the specific client application.
+@parameters:
+- filter: JSON structure that defines the filter parameters:
+    - id: [required] The internal ID of the client (not clientId)
+
+```js
+ // list the client role
+const roles= await keycloakAdapter.kcAdminClient.clients.listRoles({
+    id: 'internal-client-id'
+});
+console.log("Client roles:", roles);
+ ```
+
+
+##### `function getClientSecret(filter)`
+Retrieves the client secret associated with a confidential client in Keycloak. 
+This is typically used for clients using client_credentials or authorization_code flows where the secret is required to authenticate the client.
+@parameters:
+- filter: JSON structure that defines the filter parameters:
+    - id: [required] The internal ID of the client (not clientId)
+
+```js
+ // get client secret
+const secret= await keycloakAdapter.kcAdminClient.clients.getClientSecret({
+    id: 'internal-client-id'
+});
+console.log("Client secret:", secret);
+ ```
+
+
+
+##### `function generateNewClientSecret(filter)`
+Generates a new client secret for a confidential client in Keycloak. This will overwrite the existing secret and return the newly generated one. 
+It is useful when rotating credentials or recovering access.
+@parameters:
+- filter: JSON structure that defines the filter parameters:
+    - id: [required] The internal ID of the client (not clientId)
+
+```js
+ // generate new client secret
+const secret= await keycloakAdapter.kcAdminClient.clients.generateNewClientSecret({
+    id: 'internal-client-id'
+});
+
+console.log("New client secret:", secret.value);
+ ```
+
+
+##### `function generateRegistrationAccessToken(filter)`
+Generates a new registration access token for a client. This token allows the client to make authorized requests to the client registration REST API. 
+It’s particularly useful in dynamic client registration workflows or when automating client updates via external systems.
+@parameters:
+- filter: JSON structure that defines the filter parameters:
+    - id: [required] The internal ID of the client (not clientId)
+
+```js
+ // generate new registration access token
+const result= await keycloakAdapter.kcAdminClient.clients.generateRegistrationAccessToken({
+    id: 'internal-client-id'
+});
+
+console.log("New registration access token:", result.registrationAccessToken);
+ ```
+
+
+##### `function invalidateSecret(filter)`
+Invalidates (revokes) the current client secret, making it no longer valid. 
+After invalidation, the client will no longer be able to authenticate using the old secret and a new secret should be generated.
+
+@parameters:
+- filter: JSON structure that defines the filter parameters:
+    - id: [required] The internal ID of the client (not clientId)
+
+```js
+ // invalidate rotation token
+await keycloakAdapter.kcAdminClient.clients.invalidateSecret({
+    id: 'internal-client-id'
+});
+console.log("Client secret invalidated successfully.");
+```
+
+
+
+##### `function getInstallationProviders(filter)`
+Retrieves a list of available installation providers for a specific client. 
+Installation providers define how client configuration can be exported or installed, 
+for example as a JSON file, Keycloak XML adapter config, or other formats supported by Keycloak.
+
+@parameters:
+- filter: JSON structure that defines the filter parameters:
+    - id: [required] The internal ID of the client (not clientId)
+
+Return an array of installation provider objects, each representing a supported installation format for the client.
+```js
+ // get installation providers
+const providers = await keycloakAdapter.kcAdminClient.clients.getInstallationProviders({
+    id: 'internal-client-id'
+});
+console.log("Available installation providers:", providers);
+```
+
+
+
+##### `function getServiceAccountUser(filter)`
+Retrieves the service account user associated with a specific client. 
+In Keycloak, clients configured as service accounts have a corresponding user representing them, 
+which can be used for token-based access and permissions management.
+
+@parameters:
+- filter: JSON structure that defines the filter parameters:
+    - id: [required] The internal ID of the client (not clientId)
+
+Return an object representing the user linked to the client's service account, 
+including details such as user ID, username, email, and other user attributes.
+```js
+ // get service account user
+const serviceAccountUser = await keycloakAdapter.kcAdminClient.clients.getServiceAccountUser({
+    id: 'internal-client-id'
+});
+console.log("Service Account User:", serviceAccountUser);
+```
+
+
+##### `function addDefaultClientScope(filter)`
+The method is used to associate a client scope as a default scope for a specific client. 
+Default scopes are automatically included in tokens issued to the client.
+
+@parameters:
+- filter: JSON structure that defines the filter parameters:
+    - id: [required] The internal ID of the client (not clientId) 
+    - clientScopeId: [required] The ID of the client scope you want to add as a default scope.
+
+```js
+ // add default client scope
+ await keycloakAdapter.kcAdminClient.clients.addDefaultClientScope({
+    id: 'internal-client-id',
+    clientScopeId:'client-scope-id'
+});
+```
+
+
+##### `function delDefaultClientScope(filter)`
+This function detaches a default client scope (either default or optional) from a client. 
+Default scopes are automatically assigned to tokens issued for the client.
+
+@parameters:
+- filter: JSON structure that defines the filter parameters:
+    - id: [required] The internal ID of the client (not clientId) 
+    - clientScopeId: [required]  The ID of the client scope to be removed.
+
+```js
+ // cleanup default scopes
+ await keycloakAdapter.kcAdminClient.clients.delDefaultClientScope({
+    id: 'internal-client-id',
+    clientScopeId:'client-scope-id'
+});
+```
+
+##### `function delOptionalClientScope(filter)`
+The method is used to remove an optional client scope from a specific client. 
+Optional client scopes are those that are not automatically assigned to clients but can be requested during authentication.
+
+@parameters:
+- filter: JSON structure that defines the filter parameters:
+    - id: [required] The internal ID of the client (not clientId) 
+    - clientScopeId: [required]  The ID of the client scope you want to unlink from the client.
+
+```js
+ // cleanup default scopes
+ await keycloakAdapter.kcAdminClient.clients.delOptionalClientScope({
+    id: 'internal-client-id',
+    clientScopeId:'client-scope-id'
+});
+```
+
+
+##### `function listDefaultClientScopes(filter)`
+This method lists those default scopes for a given client.
+Default client scopes are automatically assigned to a client during token requests (e.g., openid, profile).
+
+@parameters:
+- filter: JSON structure that defines the filter parameters:
+    - id: [required] The client ID of the client whose default client scopes you want to list.
+
+```js
+ // list default client scopes
+const defaultScopes = await keycloakAdapter.kcAdminClient.clients.listDefaultClientScopes({
+    id: 'internal-client-id',
+});
+console.log("Default Clients Scopes:",defaultScopes);
+```
+
+
+
+
+##### `function listOptionalClientScopes(filter)`
+The method is used to retrieve all optional client scopes currently assigned to a specific client. 
+Optional scopes are those that a client can request explicitly but are not automatically applied.
+
+@parameters:
+- filter: JSON structure that defines the filter parameters:
+    - id: [required] The client ID of the client whose optional client scopes you want to list.
+
+```js
+ // list optional client scopes
+const optionalScopes = await keycloakAdapter.kcAdminClient.clients.listOptionalClientScopes({
+    id: 'internal-client-id',
+});
+console.log("Optional Clients Scopes:",optionalScopes);
+```
+
+
+##### `function addOptionalClientScope(filter)`
+The method is used to assign an optional client scope to a specific client. 
+Optional scopes are not automatically applied during login unless explicitly requested by the client in the scope parameter.
+
+@parameters:
+- filter: JSON structure that defines the filter parameters:
+    - id: [required] The internal client ID of the client
+    - clientScopeId: [required] The ID of the client scope you want to assign as optional.
+
+```js
+ // add optional client scope
+await keycloakAdapter.kcAdminClient.clients.addOptionalClientScope({
+    id: 'internal-client-id',
+    clientScopeId: 'scope-id',
+});
+```
+
+
+##### `function addProtocolMapper(filter,protocolMapperRepresentation)`
+The method allows you to add a single protocol mapper to a specific client. 
+Protocol mappers define how data from user/client models is added to tokens (e.g., access token, ID token, or SAML assertion)..
+
+@parameters:
+- filter: JSON structure that defines the filter parameters:
+    - id: [required] The internal client ID of the client
+- protocolMapperRepresentation: The protocol mapper definition, typically matching this structure:
+    - name
+    - protocol (e.g., "openid-connect" or "saml")
+    - protocolMapper (e.g., "oidc-usermodel-property-mapper")
+    - consentRequired
+    - config (object)
+        -  user.attribute
+        -  claim.name
+        -  jsonType.label
+        -  id.token.claim
+        -  access.token.claim
+        - .....
+    - ....
+
+```js
+ // add single protocol mapper
+await keycloakAdapter.kcAdminClient.clients.addProtocolMapper(
+    {id: 'internal-client-id'},
+    {
+        name: "become-a-farmer",
+        protocol: "openid-connect",
+        protocolMapper: "oidc-role-name-mapper",
+        config: {
+            role: "admin",
+            "new.role.name": "farmer",
+        }
+    }
+);
+
+
+
+```
+##### `function updateProtocolMapper(filter,protocolMapperRepresentation)`
+The method is used to update an existing protocol mapper for a specific client in Keycloak.
+
+@parameters:
+- filter: JSON structure that defines the filter parameters:
+    - id: [required] The internal client ID of the client
+    - mapperId: [required] The ID of the protocol mapper to be updated.
+- protocolMapperRepresentation: The protocol mapper definition, typically matching this structure:
+    - name
+    - protocol (e.g., "openid-connect" or "saml")
+    - protocolMapper (e.g., "oidc-usermodel-property-mapper")
+    - consentRequired
+    - config (object)
+        -  user.attribute
+        -  claim.name
+        -  jsonType.label
+        -  id.token.claim
+        -  access.token.claim
+        - .....
+    - ....
+
+```js
+ // update protocol mappe
+await keycloakAdapter.kcAdminClient.clients.updateProtocolMapper(
+    {id: 'internal-client-id', mapperId:'mapper-id'},
+    {
+        name: "become-a-farmer",
+        protocol: "openid-connect",
+        protocolMapper: "oidc-role-name-mapper",
+        config: {
+            role: "admin",
+            "new.role.name": "farmer",
+        }
+    }
+);
+```
+
+
+##### `function addMultipleProtocolMappers(filter,protocolMapperRepresentation)`
+The method allows you to add several protocol mappers at once to a specific client. 
+Protocol mappers define how data from the user or client model is transformed and included in tokens 
+issued by Keycloak (e.g., access tokens, ID tokens, SAML assertions). 
+This batch operation is efficient when you want to configure multiple mappings without multiple API calls.
+
+@parameters:
+- filter: JSON structure that defines the filter parameters:
+    - id: [required] The internal client ID of the client
+- protocolMapperRepresentation: An array of protocol mapper objects. Each object must conform to the ProtocolMapperRepresentation structure, which typically includes:
+  - name 
+  - protocol (e.g., "openid-connect" or "saml")
+  - protocolMapper (e.g., "oidc-usermodel-property-mapper")
+  - consentRequired 
+  - config (object)
+    -  user.attribute
+    -  claim.name 
+    -  jsonType.label 
+    -  id.token.claim 
+    -  access.token.claim
+    - .....
+  - ....
+
+```js
+ // add multiple protocol mappers
+await keycloakAdapter.kcAdminClient.clients.addMultipleProtocolMappers(
+    {id: 'internal-client-id'},
+    [
+        {
+            name: "become-a-farmer",
+            protocol: "openid-connect",
+            protocolMapper: "oidc-role-name-mapper",
+            config: {
+                role: "admin",
+                "new.role.name": "farmer",
+            },
+        },
+        {
+            name: "email",
+            protocol: "openid-connect",
+            protocolMapper: "oidc-usermodel-property-mapper",
+            consentRequired: false,
+            config: {
+                "user.attribute": "email",
+                "claim.name": "email",
+                "jsonType.label": "String",
+                "id.token.claim": "true",
+                "access.token.claim": "true",
+            },
+        },
+        {
+            name: "username",
+            protocol: "openid-connect",
+            protocolMapper: "oidc-usermodel-property-mapper",
+            consentRequired: false,
+            config: {
+                "user.attribute": "username",
+                "claim.name": "preferred_username",
+                "jsonType.label": "String",
+                "id.token.claim": "true",
+                "access.token.claim": "true",
+            },
+        }
+    ]);
+```
+
+##### `function findProtocolMapperByName(filter)`
+This method helps locate a protocol mapper within a specific client based on its protocol type (e.g. openid-connect) and the mapper name. 
+It is particularly useful when you want to verify if a mapper exists or fetch its full configuration.
+
+@parameters:
+- filter: JSON structure that defines the filter parameters:
+    - id: [required] The internal client ID of the client
+    - name: [required] The name of the protocol mapper to look up. (usually "openid-connect" or "saml").
+
+```js
+ // find Protocol Mapper ByName
+await keycloakAdapter.kcAdminClient.clients.findProtocolMapperByName({
+    id: 'internal-client-id',
+    name: 'protocol-name',
+});
+```
+
+
+##### `function findProtocolMappersByProtocol(filter)`
+The method returns all protocol mappers associated with a client, filtered by a specific protocol (e.g., "openid-connect" or "saml").
+
+@parameters:
+- filter: JSON structure that defines the filter parameters:
+    - id: [required] The internal client ID of the client
+    - protocol: [required] The protocol for which you want to fetch mappers. Common values:
+      - "openid-connect"
+      - "saml"
+
+```js
+ // find protocol mappers by protocol
+const mappers = await keycloakAdapter.kcAdminClient.clients.findProtocolMappersByProtocol({
+    id: 'internal-client-id',
+    protocol: 'openid-connect',
+});
+
+console.log(mappers);
+```
+
+
+
+##### `function findProtocolMapperById(filter)`
+The method retrieves the details of a specific protocol mapper by its ID for a given client.
+
+@parameters:
+- filter: JSON structure that defines the filter parameters:
+    - id: [required] The internal client ID of the client
+    - mapperId: [required] The ID of the protocol mapper you want to fetch.
+
+```js
+ // find Protocol Mapper By Id
+const mapper = await keycloakAdapter.kcAdminClient.clients.findProtocolMapperById({
+    id: 'internal-client-id',
+    mapperId: 'protocol-id',
+});
+console.log(mapper);
+```
+
+
+##### `function listProtocolMappers(filter)`
+The method is used to retrieve all protocol mappers associated with a specific client. 
+Protocol mappers define how user and role information is included in tokens such as access tokens, ID tokens, or SAML assertions. 
+This method is useful for inspecting or managing the token contents of a client.
+
+@parameters:
+- filter: JSON structure that defines the filter parameters:
+    - id: [required] The internal ID of the client whose protocol mappers you want to list.
+
+```js
+ // list protocol mappers
+const protocolMappers = await keycloakAdapter.kcAdminClient.clients.listProtocolMappers({
+    id: 'internal-client-id',
+});
+console.log("Protocol Mappers:", protocolMappers);
+```
+
+
+##### `function delProtocolMapper(filter)`
+The method is used to delete a specific protocol mapper from a client.
+Protocol mappers are used to include specific user or role information in tokens (e.g. access tokens, ID tokens). 
+This method is useful when you want to remove an existing mapper from a client configuration.
+
+@parameters:
+- filter: JSON structure that defines the filter parameters:
+    - id: [required] The internal client ID of the client
+    - mapperId: [required] The ID of the protocol mapper to delete
+
+```js
+ // Del Protocol Mapper
+await keycloakAdapter.kcAdminClient.clients.delProtocolMapper({
+    id: 'internal-client-id',
+    mapperId: 'mapper-id',
+});
+```
+
+
+
+### `entity clientScopes`
+The clientScopes resource allows you to manage client scopes in Keycloak. 
+Client scopes are reusable sets of protocol mappers and role scope mappings which
+can be assigned to clients to define what information about the user is included in tokens and what roles are available.
+
+#### `entity clientScopes functions`
+##### `function create(scopeRappresentation)`
+method is used to create a new client scope in a Keycloak realm.
+A client scope defines a set of protocol mappers and roles that can be applied to clients,
+such as during login or token generation.
+```js
+ // create a group called my-group
+ keycloakAdapter.kcAdminClient.clientScopes.create({
+     name: "scope-name",
+     description: "scope-description",
+     protocol: "openid-connect",
+ });
+ ```
+ 
+##### `function delByName(filter)`
+This method removes a client scope from the realm using its unique name. 
+It's an alternative to deleting by ID when the scope's name is known.
+
+@parameters:
+- filter: parameter provided as a JSON object that accepts the following filter:
+    - name: [required] The name of the client scope to delete. This must match exactly with the registered name in the realm.
+```js
+ // cleanup client scopes
+ keycloakAdapter.kcAdminClient.clientScopes.delByName({
+     name: "scope-name",
+ });
+ ```
+
+
+##### `function findOneByName(filter)`
+The method is used to retrieve a specific client scope by its name. 
+This is useful when you know the name of a client scope and want to fetch its full details, 
+including its ID, protocol, and other settings.
+
+@parameters:
+- filter: parameter provided as a JSON object that accepts the following filter:
+    - name: [required] The name of the client scope you're searching for.
+```js
+ // Find client Scope
+const scope = keycloakAdapter.kcAdminClient.clientScopes.findOneByName({
+     name: "scope-name",
+ });
+console.log("Search Result:",scope);
+ ```
+
+
 ### `entity groups`
 The groups entity allows you to manage groups in a Keycloak realm. 
 Groups are collections of users and can have roles and attributes assigned to them. 
 Groups help organize users and assign permissions in a scalable way
 
 #### `entity groups functions`
-##### `function create(role_dictionary)`
+##### `function create(groupRappresentation)`
 Create a new group in the current realme
 ```js
  // create a group called my-group
  keycloakAdapter.kcAdminClient.groups.create({name: "my-group"});
  ```
+
 
 ##### `function find(filter)`
 find method is used to retrieve a list of groups in a specific realm.
@@ -2178,6 +3132,292 @@ Return a promise that resolves when the group is successfully deleted. No conten
  // delete a group with id:'group-id'
 const group = await keycloakAdapter.kcAdminClient.groups.del({ id: 'group-id' });
  ```
+
+
+##### `function count(filter)`
+Retrieves the total number of groups present in the specified realm. 
+This is useful for pagination, reporting, or general statistics regarding group usage in a Keycloak realm.
+@parameters:
+- filter: parameter provided as a JSON object that accepts the following filter:
+  - realm: [optional] The name of the realm. If omitted, the default realm is used. 
+  - search: [optional] A text string to filter the group count by name.
+```js
+ // count groups
+const result = await keycloakAdapter.kcAdminClient.groups.count();
+console.log('Total groups:', result.count);
+
+ // count groups with filter
+const result = await keycloakAdapter.kcAdminClient.groups.count({ search: "cool-group" });
+console.log('Total cool-group groups:', result.count);
+
+ ```
+
+
+
+##### `function update(filter,groupRepresentation)`
+Updates an existing group’s information in a Keycloak realm. 
+You can modify the group’s name, attributes, or hierarchy by providing the group ID and the updated data.
+@parameters:
+- filter: parameter provided as a JSON object that accepts the following filter:
+  - id: [required] The unique ID of the group you want to update. 
+  - realm: [optional] The realm name 
+- groupRepresentation:An object representing the new state of the group. You can update properties such as:
+  - name: [optional] New name of the group 
+  - attributes: [optional] Custom attributes up field 
+  - path: [optional] full path of the group 
+  - subGroups: [optional] List of child groups (can also be updated separately)
+  - description: [optional] the new group Description
+  - other [optional] group descriprion fields 
+```js
+ // update single group
+await keycloakAdapter.kcAdminClient.groups.update(
+    { id: 'group-id' },
+    { name: "another-group-name", description: "another-group-description" },
+);
+```
+
+
+##### `function listSubGroups(filter)`
+Retrieves a paginated list of direct subgroups for a specified parent group. 
+This method is useful when navigating hierarchical group structures within a Keycloak realm.
+@parameters:
+- filter: parameter provided as a JSON object that accepts the following filter:
+  - parentId: [required] ID of the parent group whose subgroups you want to list.
+  - first: [optional] Index of the first result for pagination (default is 0).
+  - max: [optional] Maximum number of results to return.
+  - briefRepresentation: [optional] If true, returns a lightweight version of each group (default is true).
+  - realm: [optional] Realm name.
+```js
+ // list 10 subgroups
+await keycloakAdapter.kcAdminClient.groups.listSubGroups({
+    parentId: 'gropd-id',
+    first: 0,
+    max: 10,
+    briefRepresentation: false,
+});
+```
+
+
+
+##### `function addRealmRoleMappings(role_mapping)`
+Adds one or more realm-level roles to a specific group. 
+This operation grants all users within that group the associated realm roles, effectively assigning permissions at a group level.
+@parameters:
+- role_mapping: parameter provided as a JSON object that accepts the following parameters:
+  - id: [required] 	The ID of the group to which roles will be added.
+  - roles: [required] An array of role(RoleRepresentation) objects to assign.
+  
+```js
+ // add a role to group
+await keycloakAdapter.kcAdminClient.groups.addRealmRoleMappings({
+    id: 'gropd-id',
+    // at least id and name should appear
+    roles: [{
+        id: 'role-id',
+        name: 'role-name'
+    }]
+});
+```
+
+
+
+##### `function listAvailableRealmRoleMappings(filters)`
+Retrieves all available realm-level roles that can be assigned to a specific group but are not yet assigned. 
+This helps in identifying which roles are still eligible for addition to the group.
+@parameters:
+- filters: parameter provided as a JSON object that accepts the following parameters:
+  - id: [required] The ID of the group you want to inspect.
+
+Return an array of RoleRepresentation objects representing the assignable realm roles for the group.
+
+```js
+ // list available role-mappings
+const availableRoles= await keycloakAdapter.kcAdminClient.groups.listAvailableRealmRoleMappings({
+    id: 'gropd-id'
+});
+console.log('Available realm roles for group:', availableRoles);
+```
+
+
+##### `function listRoleMappings(filters)`
+Retrieves all role mappings for a specific group, including both realm roles and client roles. 
+This method is useful for understanding the complete set of roles that are assigned to a group.
+@parameters:
+- filters: parameter provided as a JSON object that accepts the following parameters:
+  - id: [required] The ID of the group whose roles to fetch
+
+Return an object with two arrays:
+- realmMappings: realm-level roles assigned to the group. 
+- clientMappings: a map of client IDs to the client-level roles assigned for each client.
+
+```js
+ // list role-mappings
+const roleMappings= await keycloakAdapter.kcAdminClient.groups.listRoleMappings({
+    id: 'gropd-id'
+});
+console.log('Realm roles:', roleMappings.realmMappings);
+console.log('Client roles:', roleMappings.clientMappings);
+```
+
+
+##### `function listRealmRoleMappings(filters)`
+Returns the list of realm-level roles that are directly assigned to a specific group. 
+These roles are defined at the realm level and are not tied to any specific client.
+@parameters:
+- filters: parameter provided as a JSON object that accepts the following parameters:
+  - id: [required] TThe ID of the group to retrieve roles for
+
+Return An array of RoleRepresentation objects
+
+```js
+ // list realm role-mappings of group
+const realmRoles= await keycloakAdapter.kcAdminClient.groups.listRealmRoleMappings({
+    id: 'gropd-id'
+});
+console.log('Realm roles assigned to group:', realmRoles.map(role => role.name));
+```
+
+
+##### `function listCompositeRealmRoleMappings(filters)`
+Retrieves all composite realm-level roles assigned to a group.
+This includes both directly assigned roles and those inherited through composite roles.
+@parameters:
+- filters: parameter provided as a JSON object that accepts the following parameters:
+  - id: [required] TThe ID of the group to retrieve roles for
+
+Return An array of RoleRepresentation objects that includes all realm roles, both directly assigned and inherited via composite roles.
+
+```js
+ // List realm composite role-mappings of group
+const compositeRealmRoles= await keycloakAdapter.kcAdminClient.groups.listCompositeRealmRoleMappings({
+    id: 'gropd-id'
+});
+console.log('All (composite) realm roles for group:', compositeRealmRoles.map(role => role.name));
+```
+
+
+##### `function delRealmRoleMappings(filters)`
+Removes one or more realm-level roles from a group's role mappings. 
+This operation only affects roles that are directly assigned.
+Composite roles inherited indirectly will not be removed.
+@parameters:
+- filters: parameter provided as a JSON object that accepts the following parameters:
+  - id: [required] TThe ID of the group to retrieve roles for
+  - roles: [required] Array of roles to be removed
+
+```js
+ // Delete realm role-mappings from group
+await keycloakAdapter.kcAdminClient.groups.delRealmRoleMappings({
+    id: 'gropd-id',
+    // at least id and name should appear
+    roles: [{
+        id: 'role-id',
+        name: 'role-name'
+    }]
+});
+```
+
+
+##### `function addClientRoleMappings(filters)`
+Assigns one or more client-level roles to a specific group. 
+This allows all users belonging to that group to inherit the specified roles for a given client.
+@parameters:
+- filters: parameter provided as a JSON object that accepts the following parameters:
+  - id: [required] The ID of the group
+  - clientUniqueId: [required] The internal ID of the client
+  - roles: [required] Array of client roles to assign to the group
+
+```js
+ // add a client role to group
+await keycloakAdapter.kcAdminClient.groups.addClientRoleMappings({
+    id: 'gropd-id',
+    clientUniqueId:'internal-client-id',
+    // at least id and name should appear
+    roles: [{
+        id: 'role-id',
+        name: 'role-name'
+    }]
+});
+```
+
+
+##### `function listAvailableClientRoleMappings(filters)`
+Retrieves the list of client roles that are available to be assigned to a specific group but are not currently mapped. 
+This is useful when you want to show assignable roles for a group in a specific client context.
+@parameters:
+- filters: parameter provided as a JSON object that accepts the following parameters:
+  - id: [required] The ID of the group
+  - clientUniqueId: [required] The internal ID of the client
+
+```js
+ // list available client role-mappings for group
+const availableRoles= await keycloakAdapter.kcAdminClient.groups.listAvailableClientRoleMappings({
+    id: 'gropd-id',
+    clientUniqueId:'internal-client-id',
+});
+console.log('Available roles:', availableRoles);
+```
+
+
+##### `function listClientRoleMappings(filters)`
+Retrieves the list of client roles that are currently assigned (mapped) to a specific group for a given client. 
+This allows you to see which roles from a client the group already has.
+@parameters:
+- filters: parameter provided as a JSON object that accepts the following parameters:
+  - id: [required] The ID of the group
+  - clientUniqueId: [required] The internal ID of the client
+
+```js
+ // list client role-mappings of group
+const availableRoles= await keycloakAdapter.kcAdminClient.groups.listClientRoleMappings({
+    id: 'gropd-id',
+    clientUniqueId:'internal-client-id',
+});
+console.log('Assigned client roles:', availableRoles);
+```
+
+
+##### `function listCompositeClientRoleMappings(filters)`
+Retrieves the list of composite client roles assigned to a specific group. 
+Composite roles are roles that aggregate other roles, so this method returns client roles that include one or more roles grouped under a composite role assigned to the group.
+@parameters:
+- filters: parameter provided as a JSON object that accepts the following parameters:
+  - id: [required] The ID of the group
+  - clientUniqueId: [required] The internal ID of the client
+
+```js
+ // list composite client role-mappings for group
+const compositeClientRoles= await keycloakAdapter.kcAdminClient.groups.listCompositeClientRoleMappings({
+    id: 'gropd-id',
+    clientUniqueId:'internal-client-id',
+});
+console.log('Composite client roles assigned to group:', compositeClientRoles);
+```
+
+
+##### `function delClientRoleMappings(filters)`
+Removes specific client role mappings from a group. 
+This function deletes one or more client roles that were assigned to the group, effectively revoking those client roles from the group.
+@parameters:
+- filters: parameter provided as a JSON object that accepts the following parameters:
+  - id: [required] The ID of the group
+  - clientUniqueId: [required] The internal ID of the client
+  - roles: An array of role objects(RoleRepresentation) representing the client roles to be removed
+
+```js
+ // delete the created role
+await keycloakAdapter.kcAdminClient.groups.delClientRoleMappings({
+    id: 'gropd-id',
+    clientUniqueId:'internal-client-id',
+    roles: [
+        {
+            id: 'role-id',
+            name: 'role-name'
+    }]
+});
+```
+
+
 
 
 
@@ -2264,7 +3504,7 @@ Find all composite roles associated with a specific id.
  ```
 
 ##### `function getCompositeRolesForRealm({roleId:roleid})`
-The getCompositeRolesForRealm function in the Keycloak Admin client is used to 
+The getCompositeRolesForRealm function  is used to 
 retrieve all realm-level roles that are associated with a given composite role. 
 When a role is defined as composite, it can include other roles either from the same 
 realm or from different clients. This specific method returns only the realm-level roles
@@ -2273,14 +3513,13 @@ parameter and returns an array of RoleRepresentation objects. If the role is not
 or has no associated realm roles, the result will be an empty array. This method is useful 
 for understanding and managing hierarchical role structures within a realm in Keycloak.
 ```js
-const role = await client.roles.findOneByName({ name: 'admin' });
-const compositeRoles = await keycloakAdapter.kcAdminClient.roles.getCompositeRolesForRealm({ roleId: role.id });
+const compositeRoles = await keycloakAdapter.kcAdminClient.roles.getCompositeRolesForRealm({ roleId: 'role-id' });
 console.log('admin composite roles:', compositeRoles.map(r => r.name));
  
  ```
 
-##### `function getCompositeRolesForRealm({roleId:'roleid', clientId:'clientId'})`
-The getCompositeRolesForClient function in the Keycloak Admin client is used to retrieve 
+##### `function getCompositeRolesForClient({roleId:'roleid', clientId:'clientId'})`
+The getCompositeRolesForClient function is used to retrieve 
 all client-level roles that are associated with a given composite role. 
 Composite roles in Keycloak can include roles from different clients,
 and this method specifically returns the roles belonging to a specified client that
@@ -2289,10 +3528,9 @@ and the clientId of the client whose roles you want to retrieve. The function re
 RoleRepresentation objects representing the client roles included in the composite. 
 This helps manage and inspect client-specific role hierarchies within the composite role structure in Keycloak.
 ```js
-const role = await client.roles.findOneByName({ name: 'admin' });
 const compositeRoles = await keycloakAdapter.kcAdminClient.roles.getCompositeRolesForClient({
-    roleId: compositeRoleId,
-    clientId: clientId,
+    roleId: 'compositeRole-Id',
+    clientId: 'client-Id'
 });
 console.log('admin composite roles fo client whith Id:clientId:', compositeRoles.map(r => r.name));
  
