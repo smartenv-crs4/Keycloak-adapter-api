@@ -357,8 +357,8 @@ Parameters:
 
 ## 🔧 Available Middlewares
 
-### `underKeycloakProtection(callback)`
-@deprecated Use the `configure` Method with `await keycloakAdapter.configure(...)`,
+### `underKeycloakProtection(callback) - deprecated - ` 
+@deprecated. Use the `configure` Method with `await keycloakAdapter.configure(...)`,
 then define your resources as you normally would in Express:
 ```js
     await keycloakAdapter.configure(config_Parameters);
@@ -1702,11 +1702,13 @@ It allows you to create, update, inspect, and delete both realm-level and client
 
 #### `entity roles functions`
 
-##### `function create(user-dictionary)`
+##### `function create(userRepresentation)`
 create is a method used to create a new user in the specified realm. 
 This method accepts a user representation object containing details such as username, email, enabled status, 
 credentials, and other user attributes that can be get by getProfile function. 
 It is typically used when you want to programmatically add new users to your Keycloak realm via the Admin API.
+@parameters:
+- userRepresentation: An object containing the user fields to be updated.
 ```js
  // create a new user
  const userProfile = await keycloakAdapter.kcAdminClient.users.create({
@@ -1718,6 +1720,19 @@ It is typically used when you want to programmatically add new users to your Key
      attributes: {
          key: "value",
      },
+ });
+ ```
+
+##### `function del(filter)`
+Deletes a user from the specified realm. Once removed, the user and all associated data (such as credentials, 
+sessions, and group/role memberships) are permanently deleted.
+@parameters:
+- id: [Required] the user ID to delete
+- realm [Optional] the realm name (defaults to current realm)
+```js
+ // delete a user
+ const userProfile = await keycloakAdapter.kcAdminClient.users.del({ 
+     id: 'user-Id' 
  });
  ```
 ##### `function find(filter)`
@@ -2234,7 +2249,7 @@ const sessions=await keycloakAdapter.kcAdminClient.users.listOfflineSessions({
 
 ##### `function logout(filter)`
 Forces logout of the specified user from all active sessions, both online and offline. 
-This invalidates the user’s active sessions and tokens, effectively logging them out from all clients.
+This invalidates the user’s active sessions and tokens, effectively logging them out from all clients
 
  - @parameters:
 - filter is a JSON object that accepts this parameters:
@@ -2658,6 +2673,24 @@ console.log("Available installation providers:", providers);
 ```
 
 
+##### `function listPolicyProviders(filter)`
+The method retrieves the list of available policy providers for a client’s resource server.
+Policy providers define the logic used to evaluate authorization decisions (e.g., role-based, group-based, time-based, JavaScript rules).
+This method allows you to see which policy types are supported and available to be created for a given client.
+
+@parameters:
+- filter: JSON structure that defines the filter parameters:
+    - id: [required] The ID of the client (resource server) for which to list available policy providers.
+
+```js
+ // get installation providers
+const providers = await keycloakAdapter.kcAdminClient.clients.listPolicyProviders({
+    id: 'internal-client-id'
+});
+console.log("Available policy providers:", providers);
+```
+
+
 
 ##### `function getServiceAccountUser(filter)`
 Retrieves the service account user associated with a specific client. 
@@ -2786,6 +2819,1304 @@ await keycloakAdapter.kcAdminClient.clients.addOptionalClientScope({
 ```
 
 
+##### `function clients.listScopeMappings(filter)`
+This method is used to list all scope mappings (roles assigned via scopes) for a given client in Keycloak.
+This includes realm-level roles and client-level roles that are mapped to the client.
+
+@parameters:
+- filter: JSON structure that defines the filter parameters:
+    - id: [required] The ID of the client whose scope mappings you want to list.
+
+```js
+ 
+// get 'internal-client-id' scope mapping
+const scopeMappings = await keycloakAdapter.kcAdminClient.clients.listScopeMappings({
+    id: 'internal-client-id'
+});
+
+console.log("Scope mappings:", scopeMappings);
+
+```
+
+
+
+##### `function clients.listAvailableClientScopeMappings(filter)`
+The method is used to list the client roles that are available to be mapped (but not yet assigned) to a specific client in Keycloak.
+This helps you discover which client roles you can still add as scope mappings.
+
+@parameters:
+- filter: JSON structure that defines the filter parameters:
+    - id: [required] The ID of the target client (the one receiving the scope mappings). 
+    - client: [required] The client ID of the source client (the one that owns the roles to be mapped).
+
+```js
+ 
+// get 'internal-client-id' available roles to be mapped
+const availableRoles = await keycloakAdapter.kcAdminClient.clients.listAvailableClientScopeMappings({
+    id: 'internal-client-id',
+    client: 'internal-client-id',
+});
+
+console.log("Available roles to be mapped:", availableRoles);
+
+```
+
+##### `function clients.addClientScopeMappings(filter)`
+The method is used to assign client roles (from a source client) to another client as scope mappings.
+This means the target client will inherit these roles when requesting tokens.
+
+@parameters:
+- filter: JSON structure that defines the filter parameters:
+    - id: [required] The ID of the target client (the one receiving the scope mappings). 
+    - client: [required] The client ID of the source client (the one that owns the roles to be mapped).
+- roles: [required] An array of role representations(RoleRepresentation) to be mapped. At minimum, each role needs its id and name.
+  - id: [required] The role ID
+  - name: [required] The role name
+  - ... other RoleRepresentation fields 
+
+
+```js
+ 
+// map available roles
+await keycloakAdapter.kcAdminClient.clients.addClientScopeMappings({
+    id: 'internal-client-id',        // Target client
+    client: "my-source-client-id",   // Source client
+    },
+    [
+        {
+            id: "role-1234",
+            name: "manage-users",
+        },
+        {
+            id: "role-5678",
+            name: "view-reports",
+        },
+    ]
+);
+
+console.log("Roles successfully mapped to client!");
+
+```
+
+
+##### `function clients.listClientScopeMappings(filter)`
+The method is used to list all client role mappings assigned to a client.
+It shows which roles from another client (source) are already mapped to the target client.
+@parameters:
+- filter: JSON structure that defines the filter parameters:
+    - id: [required] The ID of the target client (where roles are mapped)
+    - client: [required] The ID of the source client (the one that owns the roles being mapped)
+
+
+```js
+ 
+// list assigned role mappings
+const assignedRoles = await keycloakAdapter.kcAdminClient.clients.listClientScopeMappings({
+    id: 'internal-client-id',    // Target client
+    client: "my-source-client",  // Source client
+});
+
+console.log("Mapped roles:", assignedRoles);
+
+```
+
+##### `function clients.listCompositeClientScopeMappings(filter)`
+The method is used to list both direct and composite (inherited) client role mappings that are assigned to a target client.
+It differs from listClientScopeMappings because it expands composite roles and shows all roles that are effectively available to the client.
+@parameters:
+- filter: JSON structure that defines the filter parameters:
+    - id: [required] The ID of the target client (the one receiving the mappings)
+    - client: [required] The ID of the source client (the one that owns the roles)
+
+```js
+ 
+// list effective (composite) role mappings
+const effectiveRoles = await keycloakAdapter.kcAdminClient.clients.listCompositeClientScopeMappings({
+    id: 'internal-client-id',    // Target client
+    client: "my-source-client",  // Source client
+});
+
+console.log("Effective (composite) role mappings:", effectiveRoles);
+
+```
+
+
+##### `function clients.delClientScopeMappings(filter)`
+The method is used to remove one or more client role mappings from a target client.
+It is the reverse of clients.addClientScopeMappings
+@parameters:
+- filter: JSON structure that defines the filter parameters:
+    - id: [required] ID of the target client (the client losing the roles)
+    - client: [required] ID of the source client (the client where the roles are defined)
+    - roles: [required] array of RoleRepresentation roles to remove. Each role needs at least id or name
+      - id: [required] The role ID 
+      - name: [required] The role name 
+      - ... other RoleRepresentation fields
+
+
+```js
+ 
+// Rremove roles from client mappings
+await keycloakAdapter.kcAdminClient.clients.delClientScopeMappings({
+    id: 'internal-client-id',     // Target client
+    client: "my-source-client",   // Source client
+    roles: [
+        { name: "custom-role" },
+        { name: "viewer-role" },
+    ],
+});
+
+console.log("Roles removed from client mappings");
+
+
+```
+
+
+##### `function clients.listAvailableRealmScopeMappings(filter)`
+The method is used to retrieve all realm-level roles that are available to be assigned to a specific client. 
+These are roles defined at the realm level that the client does not yet have mapped, allowing you to see what can be added.
+@parameters:
+- filter: JSON structure that defines the filter parameters:
+    - id: [required] The ID of the client for which you want to list available realm-level role mappings.
+
+```js
+ 
+// Get available realm roles for client
+const availableRealmRoles = await keycloakAdapter.kcAdminClient.clients.listAvailableRealmScopeMappings({
+    id: 'internal-client-id',
+});
+
+console.log("Available realm roles for client:", availableRealmRoles);
+
+```
+
+##### `function clients.listAvailableRealmScopeMappings(filter)`
+The method is used to retrieve all realm-level roles that are available to be assigned to a specific client. 
+These are roles defined at the realm level that the client does not yet have mapped, allowing you to see what can be added.
+@parameters:
+- filter: JSON structure that defines the filter parameters:
+    - id: [required] The ID of the client for which you want to list available realm-level role mappings.
+
+```js
+ 
+// Get available realm roles for client
+const availableRealmRoles = await keycloakAdapter.kcAdminClient.clients.listAvailableRealmScopeMappings({
+    id: 'internal-client-id',
+});
+
+console.log("Available realm roles for client:", availableRealmRoles);
+
+```
+
+
+##### `function clients.listRealmScopeMappings(filter)`
+The method retrieves the realm-level roles currently assigned to a client as part of its scope mappings.
+This shows which realm roles the client is allowed to request on behalf of users.
+@parameters:
+- filter: JSON structure that defines the filter parameters:
+    - id: [required] The client ID whose realm-level scope mappings you want to list
+
+```js
+ 
+// Get mapped realm roles for client
+const roles = await keycloakAdapter.kcAdminClient.clients.listRealmScopeMappings({
+    id: 'internal-client-id',
+});
+
+console.log("Realm roles mapped to client:", roles.map(r => r.name));
+
+```
+
+##### `function clients.listCompositeRealmScopeMappings(filter)`
+The method retrieves all composite realm-level roles associated with a client through its scope mappings.
+This includes not only the roles directly mapped to the client, but also roles inherited through composite roles.
+@parameters:
+- filter: JSON structure that defines the filter parameters:
+    - id: [required] The client ID whose composite realm scope mappings you want to list
+
+```js
+ 
+// Get mapped realm composite roles for client
+const roles = await keycloakAdapter.kcAdminClient.clients.listCompositeRealmScopeMappings({
+    id: 'internal-client-id',
+});
+
+console.log("Realm composite roles mapped to client:", roles.map(r => r.name));
+
+```
+
+
+##### `function clients.addRealmScopeMappings(filter,roles)`
+The method is used to assign realm-level role mappings to a specific client.
+This effectively grants the client access to the specified realm roles.
+@parameters:
+- filter: JSON structure that defines the filter parameters:
+    - id: [required] The client ID that will receive the new realm-level role mappings.
+- roles: [required] An array of realm roles to be mapped to the client. Each role object typically contains at least id and name 
+  
+```js
+ 
+// Add Realm scope mappings
+await keycloakAdapter.kcAdminClient.clients.addRealmScopeMappings(
+    {id:'internal-client-id'},
+    [{id:'role1_id'},{id:'role1_id'}]
+);
+
+```
+
+##### `function clients.delRealmScopeMappings(filter,roles)`
+The method removes realm-level roles from a client’s scope mappings.
+This is the opposite of clients.addRealmScopeMappings.
+@parameters:
+- filter: JSON structure that defines the filter parameters:
+    - id: [required] The client ID whose realm role mapping must be removed.
+- roles: [required] An array of role objects you want to remove. Each role object must at least contain the id or name field.
+  
+```js
+ 
+// remove Realm scope mappings
+await keycloakAdapter.kcAdminClient.clients.delRealmScopeMappings(
+    {id:'internal-client-id'},
+    [{id:'role1_id'},{id:'role1_id'}]
+);
+
+```
+
+##### `function clients.listSessions(filter)`
+The method retrieves active user sessions for a specific client.
+@parameters:
+- filter: JSON structure that defines the filter parameters:
+    - id: [required] The client ID whose session must be retrieved 
+    - first:[optional] pagination field. First result index for pagination. 
+    - max: [optional] pagination field. Maximum number of results.
+  
+```js
+ 
+// get client sessions
+const sessions = await keycloakAdapter.kcAdminClient.clients.listSessions({
+    id: 'internal-client-id',
+    first: 0,
+    max: 20,
+});
+
+console.log(`Found ${sessions.length} active sessions for client`);
+sessions.forEach(s =>
+    console.log(`User: ${s.username}, IP: ${s.ipAddress}, Started: ${new Date(s.start)}`)
+);
+
+```
+
+
+##### `function clients.listOfflineSessions(filter)`
+The method retrieves offline sessions associated with a given client.
+Offline sessions are created when a client uses offline tokens (refresh tokens with offline_access scope)
+@parameters:
+- filter: JSON structure that defines the filter parameters:
+    - id: [required] The client ID whose session must be retrieved 
+    - first:[optional] pagination field. First result index for pagination. 
+    - max: [optional] pagination field. Maximum number of results.
+  
+```js
+ 
+// get offline sessions
+const sessions = await keycloakAdapter.kcAdminClient.clients.listOfflineSessions({
+    id: 'internal-client-id',
+    first: 0,
+    max: 20,
+});
+
+console.log(`Found ${sessions.length} active sessions for client`);
+sessions.forEach(s =>
+    console.log(`User: ${s.username}, IP: ${s.ipAddress}, Started: ${new Date(s.start)}`)
+);
+
+```
+
+##### `function clients.getSessionCount(filter)`
+The method retrieves the number of active user sessions for a given client.
+This includes online sessions, not offline sessions (those are retrieved with listOfflineSessions).
+@parameters:
+- filter: JSON structure that defines the filter parameters:
+    - id: [required] The client ID whose session must be retrieved
+  
+```js
+ 
+// count active sessions
+const sessionCount = await keycloakAdapter.kcAdminClient.clients.getSessionCount({
+    id: 'internal-client-id'
+});
+
+console.log(`Client internal-client-id has ${sessionCount.count} active sessions`);
+
+```
+
+##### `function clients.getOfflineSessionCount(filter)`
+The method retrieves the number of offline sessions associated with a given client. 
+Offline sessions represent sessions where the user has a valid offline token, typically used for long-lived access 
+without requiring active login.
+@parameters:
+- filter: JSON structure that defines the filter parameters:
+    - id: [required] The ID of the client for which you want to count offline sessions.
+  
+```js
+ 
+// count active sessions
+const sessionCount = await keycloakAdapter.kcAdminClient.clients.getOfflineSessionCount({
+    id: 'internal-client-id'
+});
+
+console.log(`Client internal-client-id has ${sessionCount.count} offline sessions`);
+
+```
+
+##### `function clients.addClusterNode(filter)`
+The method is used to register a cluster node for a specific Keycloak client. 
+This is relevant in scenarios where you are running Keycloak in a clustered environment and want to synchronize 
+client sessions and node information across multiple instances.
+@parameters:
+- filter: JSON structure that defines the filter parameters:
+    - id: [required] The ID of the client for which you want to add a cluster node. 
+    - node: [required] The name or identifier of the cluster node to register.
+```js
+ 
+// Add Cluster Node
+await keycloakAdapter.kcAdminClient.clients.addClusterNode({
+    id: 'internal-client-id',
+    node:'127.0.0.1'
+});
+
+```
+
+
+
+##### `function clients.deleteClusterNode(filter)`
+The method in Keycloak Admin Client is used to remove a previously registered cluster node for a specific client. 
+This is useful in clustered environments when a node is no longer active or should be deregistered from the
+client session synchronization.
+@parameters:
+- filter: JSON structure that defines the filter parameters:
+    - id: [required] The ID of the client for which you want to remove a cluster node.
+    - node: [required] The name or identifier of the cluster node to remove.
+```js
+ 
+// Add Cluster Node
+await keycloakAdapter.kcAdminClient.clients.deleteClusterNode({
+    id: 'internal-client-id',
+    node:'127.0.0.1'
+});
+
+```
+
+
+##### `function clients.generateAndDownloadKey(filter,config)`
+The method is used to generate a new cryptographic key for a client and download it. 
+This is typically used for clients that require client credentials, JWT signing, or encryption.
+@parameters:
+- filter: JSON structure that defines the filter parameters:
+    - id: [required] The ID of the client for which you want to generate the key
+    - attr: [required] The name of the client attribute where the generated key will be saved
+- config: JSON structure that defines the configuration parameters
+  - format: [required] Keystore format. Must be "JKS" or "PKCS12" 
+  - keyAlias: [required] Alias of the key in the keystore
+  - keyPassword: [required] Password of the key in the keystore
+  - storePassword: [required] keystore password
+  - realmAlias: [optional] Alias of the realm
+  - realmCertificate: [optional] Indicates whether the realm certificate should be added to the keystore. Set to true to include it 
+  
+```js
+ 
+// set Configuration
+const keystoreConfig = {
+    format: "JKS",
+    keyAlias: "new",
+    keyPassword: "password",
+    realmAlias: "master",
+    realmCertificate: false,
+    storePassword: "password",
+};
+const attr = "jwt.credential";
+
+// Generate and download Key
+const result = await keycloakAdapter.kcAdminClient.clients.generateAndDownloadKey(
+    { id: internal-client-id, attr },
+    keystoreConfig,
+);
+
+// save to file 
+fs.writeFileSync('client-keystore.jks', Buffer.from(result));
+console.log('Keystore saved ad client-keystore.jks');
+
+
+```
+
+
+##### `function clients.generateKey(filter)`
+The method is used to generate a new cryptographic key for a client without automatically downloading it. 
+This is useful for creating new signing or encryption keys associated with a client directly within Keycloak.
+Unlike clients.generateAndDownloadKey, this method only generates the key and stores it in Keycloak. It does not return the key material to the caller
+@parameters:
+- filter: JSON structure that defines the filter parameters:
+    - id: [required] The ID of the client for which you want to generate the key
+    - attr: [required] The name of the client attribute where the generated key will be saved
+
+```js
+ 
+const attr = "jwt.credential";
+
+// Generate a Key
+const result = await keycloakAdapter.kcAdminClient.clients.generateKey(
+    { id: internal-client-id, attr }
+);
+
+console.log('New RSA key successfully generated for client');
+
+
+```
+
+
+
+##### `function clients.getKeyInfo(filter)`
+The method is used to retrieve metadata about the keys associated with a specific client.
+It does not return the actual key material but provides information such as the key type, provider, algorithm, and status.
+@parameters:
+- filter: JSON structure that defines the filter parameters:
+    - id: [required] The ID of the client whose key information should be retrieved
+    - attr: [optional] The name of the client attribute to get
+
+```js
+ 
+const attr = "jwt.credential";
+
+// Get Key Info
+const keyInfo = await keycloakAdapter.kcAdminClient.clients.getKeyInfo(
+    { id: internal-client-id, attr }
+);
+
+
+console.log("Client key info:", keyInfo);
+
+
+```
+
+
+##### `function clients.downloadKey(filter,config)`
+The method Downloads a client’s cryptographic key (certificate) from Keycloak. 
+This is typically used when you need to retrieve the public certificate of a client for token validation, signing, or encryption purposes.
+@parameters:
+- filter: JSON structure that defines the filter parameters:
+    - id: [required] The ID of the client whose key information should be downloaded
+    - attr: [optional] Specifies which key/certificate to download. Common values include:
+      - "jwt.credential": default JWT signing key.
+      - "saml.signing": SAML signing certificate.
+      - "rsa-generated": generated RSA key pair. 
+- config: JSON structure that defines the configuration parameters
+  - format: [required] Keystore format. Must be "JKS" or "PKCS12"
+  - keyAlias: [required] Alias of the key in the keystore
+  - keyPassword: [required] Password of the key in the keystore
+  - storePassword: [required] keystore password
+  - realmAlias: [optional] Alias of the realm
+  - realmCertificate: [optional] Indicates whether the realm certificate should be added to the keystore. Set to true to include it
+
+
+```js
+
+// set Configuration
+const keystoreConfig = {
+    format: "JKS",
+    keyAlias: "new",
+    keyPassword: "password",
+    realmAlias: "master",
+    realmCertificate: false,
+    storePassword: "password",
+};
+
+const attr = "jwt.credential";
+
+// Generate and Key
+const cert = await keycloakAdapter.kcAdminClient.clients.downloadKey(
+    { id: internal-client-id, attr },
+    keystoreConfig
+);
+
+
+// cert will contain the PEM-encoded certificate or key
+console.log(cert);
+
+
+```
+
+
+
+##### `function clients.createAuthorizationScope(filter,scopeRepresentation)`
+The method in the Keycloak Admin Client is used to create a new authorization scope for a specific client.
+Authorization scopes are part of Keycloak’s Authorization Services and represent fine-grained permissions 
+that can later be linked to resources and policies.
+@parameters:
+- filter: JSON structure that defines the filter parameters:
+    - id: [required] TThe ID of the client for which the scope will be created 
+    - scopeRepresentation:[required] The details of the new authorization scope as:
+      - name: [required] The unique name of the scope. 
+      - displayName: [optional] A human-friendly name for UI purposes 
+      - iconUri [optional] A URI pointing to an icon representing the scope
+      - ... other scope representation fields
+
+```js
+
+// createAuthorizationScope
+await keycloakAdapter.kcAdminClient.clients.createAuthorizationScope(
+    { id: 'internal-client-id' },
+    {
+        name: "manage-orders",
+        displayName: "Manage Orders",
+        iconUri: "https://example.com/icons/orders.png"
+    });
+
+```
+
+
+##### `function clients.listAllScopes(filter)`
+The method is used to retrieve all available scopes for a specific client.
+This includes both default scopes and optional scopes that can be assigned to the client.
+@parameters:
+- filter: JSON structure that defines the filter parameters:
+    - id: [required] The ID of the client whose scopes you want to list
+    
+
+```js
+
+// Get scopes
+const scopes= await keycloakAdapter.kcAdminClient.clients.listAllScopes({
+    id: 'internal-client-id' 
+});
+
+console.log(scopes);
+
+```
+
+##### `function clients.updateAuthorizationScope(filter,AuthorizationScopeRepresentation)`
+The method is used to update an existing authorization scope for a specific client. 
+Authorization scopes define permissions that can be used in policies and permissions for the client’s resources.
+@parameters:
+- filter: JSON structure that defines the filter parameters:
+    - id: [required] The ID of the client to which the scope belongs 
+    - scopeId [required] The ID of the authorization scope to update
+- AuthorizationScopeRepresentation [required]: JSON structure that defines the authorization scope representation update
+  - name: The new name of the scope
+  - displayName The human-readable name of the scope
+  - iconUri Optional URI for an icon representing the scope
+  - .. other attributes: Additional attributes for the scope.
+
+```js
+
+// Update the scope-id authorization scope
+const scopes= await keycloakAdapter.kcAdminClient.clients.updateAuthorizationScope(
+    {
+        id: 'internal-client-id',
+        scopeId: 'scope-id'
+    },
+    {
+        name: 'updated-scope-name',
+        displayName: 'Updated Scope',
+        iconUri: 'https://example.com/icon.png',
+    }
+);
+
+console.log('Authorization scope updated successfully');
+
+```
+
+
+##### `function clients.getAuthorizationScope(filter)`
+The method is used to retrieve the details of a specific authorization scope associated with a client. 
+Authorization scopes define permissions that can be applied to resources and policies in Keycloak.
+@parameters:
+- filter: JSON structure that defines the filter parameters:
+    - id: [required] The ID of the client to which the scope belongs 
+    - scopeId [required] The ID of the authorization scope to retrieve
+
+```js
+
+// get scope-id authorization scope
+const scope= await keycloakAdapter.kcAdminClient.clients.getAuthorizationScope({
+    id: 'internal-client-id',
+    scopeId: 'scope-id'
+});
+
+console.log('Authorization scope details:', scope);
+
+```
+
+##### `function clients.listAllResourcesByScope(filter)`
+The method is used to retrieve all resources associated with a specific authorization scope for a given client. 
+This allows you to see which resources are governed by a particular scope in the client’s authorization settings.
+@parameters:
+- filter: JSON structure that defines the filter parameters:
+    - id: [required] The ID of the client to which the scope belongs 
+    - scopeId [required] The ID of the authorization scope whose associated resources you want to list.
+
+```js
+
+// List all resources by scope
+const resources= await keycloakAdapter.kcAdminClient.clients.listAllResourcesByScope({
+    id: 'internal-client-id',
+    scopeId: 'scope-id'
+});
+
+console.log('Resources associated with this scope:', resources);
+
+```
+
+
+##### `function clients.listAllPermissionsByScope(filter)`
+The method is used to retrieve all permissions associated with a specific authorization scope for a given client. 
+This is helpful for understanding which permissions (policies and rules) are applied when a particular scope is used.
+@parameters:
+- filter: JSON structure that defines the filter parameters:
+    - id: [required] The ID of the client to query 
+    - scopeId [required] The ID of the authorization scope whose associated permissions you want to list
+
+```js
+
+// list all permissions by scope
+const permissions= await keycloakAdapter.kcAdminClient.clients.listAllPermissionsByScope({
+    id: 'internal-client-id',
+    scopeId: 'scope-id'
+});
+
+
+console.log('Permissions associated with this scope:', permissions);
+
+```
+
+
+
+##### `function clients.listPermissionScope(filter)`
+The method is used to retrieve all scopes associated with a specific permission for a given client. 
+This allows you to see which scopes a permission controls, helping you manage fine-grained access rules 
+in Keycloak’s Authorization Services (UMA 2.0) framework.
+@parameters:
+- filter: JSON structure that defines the filter parameters:
+    - id: [required] The ID of the client whose permission scopes you want to list
+    - permissionId [optional] The ID of the permission whose scopes should be retrieved
+    - name: [optional] The name of the permission whose scopes should be retrieved
+
+```js
+
+// List permission scope
+const permissionScopes= await keycloakAdapter.kcAdminClient.clients.listPermissionScope({
+        id: 'internal-client-id',
+        name: "scope",
+});
+
+
+console.log('Permission Scopes:', permissionScopes);
+
+```
+
+
+
+##### `function clients.importResource(filter,resource)`
+The method is used to import a resource into a client. 
+This is part of Keycloak’s Authorization Services (UMA 2.0) and allows you to programmatically define 
+resources that a client can protect with policies and permissions.
+@parameters:
+- filter: JSON structure that defines the filter parameters:
+    - id: [required] The ID of the client to which the resource should be imported 
+- resource [required]  The resource representation object. This typically includes attributes like name, uris, type, scopes, and other Keycloak resource configuration options.
+
+```js
+
+// import resource
+await keycloakAdapter.kcAdminClient.clients.importResource(
+    {
+        id: 'internal-client-id'
+    },
+    {
+        allowRemoteResourceManagement: true,
+        policyEnforcementMode: "ENFORCING",
+        resources: [],
+        policies: [],
+        scopes: ['view','edit'],
+        decisionStrategy: "UNANIMOUS",
+    }
+);
+
+
+console.log('Resource imported successfully');
+
+```
+
+
+##### `function clients.exportResource(filter)`
+The method is used to export a resource from a client. 
+This allows you to retrieve the full configuration of a resource, including its URIs, scopes, 
+and associated permissions, which can then be backed up, replicated, or modified externally.
+@parameters:
+- filter: JSON structure that defines the filter parameters:
+    - id: [required] The ID of the client from which to export the resource 
+    - resourceId: [optional] The ID of the resource you want to export
+  
+```js
+
+// resource export
+const exportedResource = await keycloakAdapter.kcAdminClient.clients.exportResource({
+        id: 'internal-client-id'
+});
+
+console.log('Exported Resource:', exportedResource);
+
+```
+
+
+##### `function clients.createResource(filter,resourceRepresentation)`
+The method is used to create a new resource under a specific client. 
+A resource represents a protected entity in Keycloak’s authorization services, such as a REST endpoint,
+a document, or any application-specific asset. This allows you to manage fine-grained access control via policies and permissions.
+@parameters:
+- filter: JSON structure that defines the filter parameters:
+    - id: [required] The ID of the client where the resource will be created
+- resourceRepresentation: [required] An object representing the resource configuration. Typical fields defined in https://www.keycloak.org/docs-api/latest/rest-api/index.html#ResourceRepresentation include:
+  - name: [required] The human-readable name of the resource. 
+  - uris: [optional] Array of URI patterns or paths representing the resource. 
+  - scopes: [optional] Array of scopes associated with the resource. 
+  - type: [optional] Type/category of the resource. 
+  - owner: [optional] Defines the owner of the resource.
+  
+```js
+
+// define a resource
+const newResource = {
+    name: 'Document Service',
+    uris: ['/documents/*'],
+    scopes: ['read', 'write'],
+    type: 'REST',
+};
+// create resource
+const createdResource = await keycloakAdapter.kcAdminClient.clients.createResource(
+    {id: 'internal-client-id'},
+    newResource
+);
+
+console.log('Created Resource:', createdResource);
+
+```
+
+##### `function clients.getResource(filter)`
+The method is used to retrieve a specific resource of a client by its ID. 
+Resources in Keycloak represent protected entities, such as APIs, documents, or any application-specific assets, 
+that can have associated scopes, policies, and permissions for fine-grained access control.
+@parameters:
+- filter: JSON structure that defines the filter parameters:
+    - id: [required] The ID of the client that owns the resource 
+    - resourceId: [required] The ID of the resource you want to retrieve.
+```js
+
+// get resource
+const createdResource = await keycloakAdapter.kcAdminClient.clients.getResource({
+    id: 'internal-client-id',
+    resourceId: '12345-abcde',
+});
+
+console.log('Retrieved Resource:', resource);
+
+```
+
+##### `function clients.getResourceServer(filter)`
+The method is used to retrieve the resource server settings of a client. 
+A resource server in Keycloak represents a client that is enabled with Authorization Services, 
+meaning it can define resources, scopes, permissions, and policies for fine-grained access control.
+@parameters:
+- filter: JSON structure that defines the filter parameters:
+    - id: [required] The ID of the client whose resource server configuration you want to retrieve
+
+```js
+
+// get resource Server
+const resourceServer = await keycloakAdapter.kcAdminClient.clients.getResourceServer({
+    id: 'internal-client-id',
+    resourceId: '12345-abcde',
+});
+
+console.log('Resource Server:', resourceServer);
+
+```
+
+##### `function clients.updateResourceServer(filter,resourceServerRepresentation)`
+The method is used to update the configuration of a client’s resource server. 
+A resource server defines authorization settings such as resources, scopes, permissions, 
+and policies that control fine-grained access to protected assets.
+@parameters:
+- filter: JSON structure that defines the filter parameters:
+    - id: [required] The ID of the client whose resource server configuration should be updated
+- resourceServerRepresentation: [required] An object representing the resource server configuration such as:
+  - policyEnforcementMode: [optional] Defines how authorization policies are enforced (ENFORCING, PERMISSIVE, or DISABLED) 
+  - decisionStrategy: [optional] The decision strategy for policies (UNANIMOUS, AFFIRMATIVE, or CONSENSUS)
+  - Other resource server settings depending on your authorization model (resources, scopes, and permissions)
+
+```js
+
+//define resource Server
+const resourceServerRepresentation={
+    policyEnforcementMode: "ENFORCING",
+    decisionStrategy: "UNANIMOUS",
+}
+
+// update resource Server
+await keycloakAdapter.kcAdminClient.clients.updateResourceServer(
+    { id: 'internal-client-id' },
+    resourceServerRepresentation   
+);
+
+console.log("Resource server updated successfully");
+
+```
+
+##### `function clients.listPermissionsByResource(filter)`
+The method is used to retrieve all permissions associated with a specific resource within a client’s resource server. 
+This is part of the Keycloak Authorization Services API and helps administrators inspect which permissions are linked to a given protected resource.
+@parameters:
+- filter: JSON structure that defines the filter parameters:
+  - id: [required] The ID of the client (the resource server). 
+  - resourceId: [required] The ID of the resource for which to list permissions.
+
+```js
+
+
+// List permissions by resource
+const permissions= await keycloakAdapter.kcAdminClient.clients.listPermissionsByResource({ 
+    id: 'internal-client-id',
+    resourceId: 'resource-id'
+});
+
+console.log("Permissions for resource:", permissions);
+
+```
+
+##### `function clients.createPermission(filter,permissionRepresentation)`
+The method is used to create a new permission for a client.
+Permissions define which users or roles can access specific resources or scopes within the client,
+based on policies you configure. This is part of Keycloak’s Authorization Services (UMA 2.0) framework.
+@parameters:
+- filter: JSON structure that defines the filter parameters:
+    - id: [required] The ID of the client for which the permission will be created
+    - type: [required] Type of the permission (resource or scope)
+- permissionRepresentation:[required] An object describing the permission. Common fields include:
+    - name: [required]  The name of the permission
+    - resources: [optional] Array of resource IDs this permission applies to (for resource type)
+    - scopes: [optional] Array of scope IDs this permission applies to (for scope type)
+    - policies [required] Array of policy IDs associated with this permission
+
+```js
+
+// create a permission
+await keycloakAdapter.kcAdminClient.clients.createPermission({
+        id: 'internal-client-id',
+        type: "scope",
+    },
+    {
+        name: 'permission.name',
+        // @ts-ignore
+        resources: ['resource-id'],
+        policies: ['policy-id'],
+        scopes: ['scope-id1','scope-id2'],
+    }
+);
+
+
+console.log('Permission created');
+
+```
+
+
+##### `function clients.findPermissions(filter)`
+The method is used to search for permissions within a client’s resource server.
+Permissions in Keycloak represent rules that define how policies are applied to resources or scopes,
+and this method allows you to list and filter them based on specific criteria.
+@parameters:
+- filter: JSON structure that defines the filter parameters:
+    - id: [required] The ID of the client (the resource server) where permissions are defined 
+    - name: [optional] Filter permissions by name
+    - type: [optional] Filter by permission type (e.g., "resource" or "scope") 
+    - resource: [optional] Filter by the resource ID
+    - scope: [optional] Filter by scope ID
+    - first: [optional] Index of the first result for pagination 
+    - max: [optional] Maximum number of results to return
+```js
+
+// search permission
+const permissions= await keycloakAdapter.kcAdminClient.clients.findPermissions({
+    id: 'internal-client-id',
+    name: "View Orders",
+    type: "resource",
+});
+
+console.log("Permissions found:", permissions);
+
+```
+
+
+##### `function clients.updateFineGrainPermission(filter,status)`
+The method updates the fine-grained admin permissions configuration for a specific client.
+Fine-grained permissions allow you to control which users/roles can manage different aspects of a client 
+(e.g., who can manage roles, protocol mappers, or scope assignments).
+@parameters:
+- filter: JSON structure that defines the filter parameters:
+    - id: [required] The ID of the client (the resource server) where permissions are defined 
+- status: JSON structure that defines the fine grain permission
+  - enabled: [required] Whether fine-grained permissions should be enabled or disabled.
+```js
+
+// enable fine-grained permissions for this client
+await keycloakAdapter.kcAdminClient.clients.updateFineGrainPermission(
+    { id: 'internal-client-id'},
+    { enabled: true }  
+);
+console.log("Fine-grained permissions updated successfully");
+
+```
+
+##### `function clients.listFineGrainPermissions(filter)`
+The method retrieves the current fine-grained admin permission settings for a given client.
+This is useful for checking which permissions are configured (e.g., managing roles, protocol mappers, or client scopes).
+@parameters:
+- filter: JSON structure that defines the filter parameters:
+    - id: [required] The ID of the client (the resource server) where permissions are defined
+```js
+
+// enable fine-grained permissions for this client
+const permissions=  await keycloakAdapter.kcAdminClient.clients.listFineGrainPermissions(
+    { id: 'internal-client-id'},
+    { enabled: true }  
+);
+console.log("Fine-grained permissions for client:", permissions);
+
+```
+
+
+##### `function clients.getAssociatedScopes(filter)`
+The method is used to retrieve all scopes associated with a specific permission within a client’s resource server.
+In Keycloak’s Authorization Services, permissions can be linked to one or more scopes to define the contexts in which they apply. This method allows you to query those associations.
+@parameters:
+- filter: JSON structure that defines the filter parameters:
+    - id: [required] The ID of the client whose permission scopes you want to list
+    - permissionId: [required] The ID of the permission whose associated scopes you want to retrieve.
+
+```js
+
+// List associated scope
+const scopes= await keycloakAdapter.kcAdminClient.clients.getAssociatedScopes({
+    id: 'internal-client-id',
+    permissionId: "123e4567-e89b-12d3-a456-426614174000",
+});
+
+console.log("Associated scopes:", scopes);
+```
+
+##### `function clients.getAssociatedPolicies(filter)`
+The method is used to retrieve all policies associated with a specific permission within a client’s resource server.
+n Keycloak Authorization Services, permissions can be tied to one or more policies that define the conditions under which access is granted. This method lets you fetch those policy associations
+@parameters:
+- filter: JSON structure that defines the filter parameters:
+    - id: [required] The ID of the client whose permission policies you want to list
+    - permissionId: [required] The ID of the permission whose associated policies you want to retrieve.
+
+```js
+
+// List associated policies
+const policies= await keycloakAdapter.kcAdminClient.clients.getAssociatedPolicies({
+        id: 'internal-client-id',
+    permissionId: "123e4567-e89b-12d3-a456-426614174000",
+});
+
+console.log("Associated policies:", policies);
+```
+
+
+
+##### `function clients.getAssociatedResources(filter)`
+The method is used to retrieve all resources linked to a specific permission in a client’s resource server.
+In Keycloak Authorization Services, permissions can be scoped to one or more resources (such as APIs, endpoints, or domain-specific entities). This method allows you to query those resource associations.
+@parameters:
+- filter: JSON structure that defines the filter parameters:
+    - id: [required] The ID of the client whose permission resource you want to list
+    - permissionId: [required] The ID of the permission for which you want to fetch associated resources.
+
+```js
+
+// List associated resources
+const resources= await keycloakAdapter.kcAdminClient.clients.getAssociatedResources({
+    id: 'internal-client-id',
+    permissionId: "123e4567-e89b-12d3-a456-426614174000",
+});
+
+console.log("Associated resources:", resources);
+
+```
+
+
+##### `function clients.listScopesByResource(filter)`
+The method is used to list all authorization scopes associated with a specific resource in a client’s resource server. 
+This allows administrators to understand which scopes are directly linked to a protected resource and therefore which permissions can be applied to it.
+@parameters:
+- filter: JSON structure that defines the filter parameters:
+  - id: [required] The ID of the client (the resource server). 
+  - resourceId: [required] The ID of the resource for which to list scopes.
+
+```js
+
+
+// List permissions by resource
+const scopes= await keycloakAdapter.kcAdminClient.clients.listScopesByResource({ 
+    id: 'internal-client-id',
+    resourceId: 'resource-id'
+});
+
+console.log("Scopes for resource:", scopes);
+
+```
+
+
+##### `function clients.listResources(filter)`
+The method is used to retrieve all resources defined in a client’s resource server. 
+Resources represent protected entities (such as APIs, files, or services) that can be associated with scopes and permissions in Keycloak’s authorization services.
+@parameters:
+- filter: JSON structure that defines the filter parameters:
+  - id: [required] The ID of the client (the resource server) 
+  - deep: [optional] If true, returns detailed information about each resource 
+  - first: [optional] Index of the first resource to return (for pagination)
+  - max: [optional] Maximum number of resources to return (for pagination)
+  - name: [optional] Filters resources by name
+  - uri: [optional] Filters resources by URI
+  - owner: [optional] Filters resources by owner
+
+```js
+
+
+// List resources
+const resources= await keycloakAdapter.kcAdminClient.clients.listResources({ 
+    id: 'internal-client-id',
+    resourceId: 'resource-id'
+});
+
+console.log("Resources:", resources);
+
+```
+
+
+##### `function clients.updateResource(filter,resourceRepresentation)`
+The method is used to update an existing resource in a client’s resource server. 
+Resources represent protected entities (APIs, files, services, etc.) that can be secured with scopes and permissions under Keycloak’s Authorization Services
+@parameters:
+- filter: JSON structure that defines the filter parameters:
+  - id: [required] The ID of the client (the resource server)
+  - resourceId: [required] The ID of the resource you want to update.
+- resourceRepresentation: JSON structure that defines the resource representation to update 
+  - name: [optional] The updated name of the resource
+  - displayName: [optional] A human-readable name for the resource
+  - uris: [optional] Updated list of URIs associated with the resource 
+  - scopes: [optional] Updated list of scopes linked to the resource
+  - ownerManagedAccess: [optional] Indicates whether the resource is managed by its owner 
+  - attributes : [optional] Custom attributes for the resource
+  
+
+```js
+
+
+// Update resource
+await keycloakAdapter.kcAdminClient.clients.updateResource( 
+    {  
+        id: 'internal-client-id',
+        resourceId: 'resource-id' 
+    },
+    {
+        name: "updated-api-resource",
+        displayName: "Updated API Resource",
+        uris: ["/api/updated/*"],
+        scopes: [{ name: "view" }, { name: "edit" }],
+        ownerManagedAccess: true,
+    }
+);
+
+console.log("Resource updated successfully");
+
+```
+
+
+##### `function clients.createPolicy(filter,policyRepresentation)`
+The method is used to create a new policy for a client’s resource server under Keycloak’s Authorization Services.
+Policies define the rules that determine whether access should be granted or denied to a given resource, scope, or permission. 
+They can be based on users, roles, groups, conditions, or custom logic.
+@parameters:
+- filter: JSON structure that defines the filter parameters:
+  - id: [required] The ID of the client (the resource server) where the policy will be created.
+  - type: [required] The policy type. Examples include:
+    - "role" – grants access based on roles.    
+    - "user" – grants access based on users.
+    - "group" – grants access based on groups.
+    - "js" – uses custom JavaScript logic.
+    - "time" – defines time-based conditions.
+- policyRepresentation: JSON structure that defines the policy:
+  - name: [required] The name of the policy. 
+  - description: [optional] A human-readable description of the policy. 
+  - logic: [optional] Either "POSITIVE" (default, grants access if the condition is met) or "NEGATIVE" (denies access if the condition is met). 
+  - decisionStrategy: [optional] Defines how multiple policies are evaluated: "AFFIRMATIVE", "UNANIMOUS", or "CONSENSUS". 
+  - Other Config...: [optional]  Configuration object depending on  the chosen policy type. For example, a role policy requires role details.
+  
+
+```js
+
+
+// create new policy
+await keycloakAdapter.kcAdminClient.clients.createPolicy( 
+    {  
+        id: 'internal-client-id',
+        type: "role",   
+    },
+    
+    {
+        name: "role-based-policy",
+        description: "Grants access only to users with the admin role",
+        logic: "POSITIVE", 
+        decisionStrategy: "UNANIMOUS",
+        users: [user.id],
+        config: {
+            roles: JSON.stringify([{ id: "admin-role-id", required: true }]),
+        },
+    }
+);
+
+console.log("Policy created successfully");
+
+```
+
+
+
+##### `function clients.listDependentPolicies(filter)`
+The method is used to list all policies that depend on a given policy within a client’s resource server.
+This is useful when you want to understand how a policy is referenced by other policies, permissions, or configurations, helping you manage complex authorization structures.
+@parameters:
+- filter: JSON structure that defines the filter parameters:
+  - id: [required] The ID of the client (the resource server) where the policy exists. 
+  - policyId: [required] The ID of the policy for which you want to list dependent policies.
+
+```js
+
+
+// create new policy
+const dependentPolicies= await keycloakAdapter.kcAdminClient.clients.listDependentPolicies( 
+    {  
+        id: 'internal-client-id',
+        policyId: "1234-abcd-policy-id",
+    });
+
+console.log("Dependent policies:", dependentPolicies);
+
+```
+
+
+
+
+##### `function clients.evaluateGenerateAccessToken(filter)`
+The method is used to generate or simulate an access token for a specific client, typically for testing or evaluating the token
+contents without performing a full user login. This can help you verify client roles, scopes, and protocol mappers included in the token
+@parameters:
+- filter: JSON structure that defines the filter parameters:
+    - id: [required] ID of the client for which you want to generate or evaluate the access token
+  
+```js
+// generate accesstoken
+const token = await keycloakAdapter.kcAdminClient.clients.evaluateGenerateAccessToken({
+    id: 'internal-client-id',
+});
+
+console.log("Generated access token:", token);
+
+// should printed:
+        // "access_token": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...",
+        //  "expires_in": 300,
+        //  "refresh_expires_in": 1800,
+        //  "token_type": "Bearer",
+        //  "scope": "openid profile email"
+}
+```
+
+
+##### `function clients.evaluateGenerateIdToken(filter)`
+The method is used to generate or simulate an ID token for a specific client, usually for testing or evaluating the token without
+performing a full user login. This allows you to verify which claims, scopes, and protocol mappers are included in the ID 
+token for the client.
+@parameters:
+- filter: JSON structure that defines the filter parameters:
+    - id: [required] ID of the client for which you want to generate or evaluate the ID token
+  
+```js
+// generate id token
+const token = await keycloakAdapter.kcAdminClient.clients.evaluateGenerateIdToken({
+    id: 'internal-client-id',
+});
+
+console.log("Generated ID token:", token);
+
+// should printed:
+        // "access_token": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...",
+        //  "expires_in": 300,
+        //  "refresh_expires_in": 1800,
+        //  "token_type": "Bearer",
+        //  "scope": "openid profile email"
+}
+```
+
+##### `function clients.evaluateGenerateUserInfo(filter)`
+The method is used to generate or simulate a UserInfo response for a specific client, typically for testing or evaluating what 
+user information would be returned by the UserInfo endpoint for that client. This helps verify which claims are included in the 
+UserInfo response without performing a full login flow.
+@parameters:
+- filter: JSON structure that defines the filter parameters:
+    - id: [required] The ID of the client for which you want to generate the UserInfo response
+  
+```js
+// generate toke user info
+const userInfo = await keycloakAdapter.kcAdminClient.clients.evaluateGenerateUserInfo({
+    id: 'internal-client-id',
+});
+
+console.log("Generated UserInfo response:", userInfo);
+
+/*
+  should be printed:
+    {
+        "sub": "1234-5678-90ab-cdef",
+        "preferred_username": "johndoe",
+        "email": "johndoe@example.com",
+        "given_name": "John",
+        "family_name": "Doe"
+    }
+ */
+
+```
+
+
+##### `function evaluateListProtocolMapper(filter)`
+The method is used to retrieve or evaluate the protocol mappers associated with a specific client. 
+Protocol mappers define how user information (claims) is mapped into tokens (like ID tokens or access tokens) for a client.
+
+@parameters:
+- filter: JSON structure that defines the filter parameters:
+    - id: [required] ID of the client for which you want to list or evaluate protocol mappers.
+
+```js
+ // List protocol mappers for client
+const protocolMappers = await keycloakAdapter.kcAdminClient.clients.evaluateListProtocolMapper({
+    id: 'internal-client-id',
+});
+
+console.log("Protocol mappers for client:", protocolMappers);
+
+```
+
+
+
+
 ##### `function addProtocolMapper(filter,protocolMapperRepresentation)`
 The method allows you to add a single protocol mapper to a specific client. 
 Protocol mappers define how data from user/client models is added to tokens (e.g., access token, ID token, or SAML assertion)..
@@ -2825,6 +4156,10 @@ await keycloakAdapter.kcAdminClient.clients.addProtocolMapper(
 
 
 ```
+
+
+
+
 ##### `function updateProtocolMapper(filter,protocolMapperRepresentation)`
 The method is used to update an existing protocol mapper for a specific client in Keycloak.
 
@@ -3022,6 +4357,7 @@ await keycloakAdapter.kcAdminClient.clients.delProtocolMapper({
     mapperId: 'mapper-id',
 });
 ```
+
 
 
 
