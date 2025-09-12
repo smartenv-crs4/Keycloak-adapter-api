@@ -4026,18 +4026,18 @@ contents without performing a full user login. This can help you verify client r
 ```js
 // generate accesstoken
 const token = await keycloakAdapter.kcAdminClient.clients.evaluateGenerateAccessToken({
-    id: 'internal-client-id',
+    id: 'internal-client-id'
 });
 
-console.log("Generated access token:", token);
+console.log("Generated access token:", token); 
 
-// should printed:
+// should be printed:
         // "access_token": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...",
         //  "expires_in": 300,
         //  "refresh_expires_in": 1800,
         //  "token_type": "Bearer",
         //  "scope": "openid profile email"
-}
+
 ```
 
 
@@ -4063,7 +4063,7 @@ console.log("Generated ID token:", token);
         //  "refresh_expires_in": 1800,
         //  "token_type": "Bearer",
         //  "scope": "openid profile email"
-}
+
 ```
 
 ##### `function clients.evaluateGenerateUserInfo(filter)`
