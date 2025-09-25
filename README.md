@@ -84,26 +84,7 @@ app.get('/', (req, res) => {
   res.send('Public route: no authentication required');
 });
 
-/* Protected routes (any authenticated user)
-@deprecated Use the `configure` function with `await keycloakAdapter.configure(...)`,
-then define your resources as you normally would in Express:
-
-    await keycloakAdapter.configure(...);
-    app.get('/my-route', handler);
-
-Alternatively, if you prefer to define your resources inside a container after configuration,
-you can use the `then` syntax:
-
-    keycloakAdapter.configure(...).then(() => {
-        // Define your routes here
-        app.get('/my-route', handler);
-    });
-    
-*/
-keycloackAdapter.underKeycloakProtection(function(){
-    // This function is deprecated and will be removed in future versions. 
-    // It is retained only for backward compatibility with older versions
-});
+/* Protected routes (any authenticated user)   */
 
 // Example of login with keycloackAdapter.login function
 // After login redirect to "/home" 
@@ -362,7 +343,9 @@ Parameters:
 then define your resources as you normally would in Express:
 ```js
     await keycloakAdapter.configure(config_Parameters);
-    // all your routes    
+    
+    // all your routes
+
     app.get('/my-route', handler);
 ```
 
