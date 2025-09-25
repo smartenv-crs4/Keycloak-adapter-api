@@ -4373,13 +4373,56 @@ A client scope defines a set of protocol mappers and roles that can be applied t
 such as during login or token generation.
 ```js
  // create a group called my-group
- keycloakAdapter.kcAdminClient.clientScopes.create({
+ await keycloakAdapter.kcAdminClient.clientScopes.create({
      name: "scope-name",
      description: "scope-description",
      protocol: "openid-connect",
  });
  ```
+
+
+##### `function update(filter,scopeRappresentation)`
+The method updates the configuration of an existing client scope in a realm.
+You can modify properties such as the scope’s name, description, attributes, or protocol mappers.
+
+@parameters:
+- filter: parameter provided as a JSON object that accepts the following filter:
+    - id: [required] The unique ID of the client scope to update.
+    - realm: [optional] The realm where the client scope exists. 
+- scopeRappresentation: The updated client scope object. for example:
+  - name: [optional] The name of the scope
+  - description: [optional] The scope description
+  - other scope fields....
+  
+```js
+ // update a scope called my-scope-id
+ await keycloakAdapter.kcAdminClient.clientScopes.update(
+     {id:'my-scope-id'},
+     {
+        name: "scope-name",
+        description: "scope-description",
+        protocol: "openid-connect",
+     }
+ );
+ ```
  
+
+##### `function del(filter)`
+The method deletes a client scope from a realm in Keycloak.
+Once deleted, the client scope will no longer be available for assignment to clients (either as default, optional, or manually).
+
+@parameters:
+- filter: parameter provided as a JSON object that accepts the following filter:
+    - id: [required] The unique ID of the client scope to delete.
+    - realm: [optional] The realm where the client scope is defined.
+```js
+ // delete client scope
+ await keycloakAdapter.kcAdminClient.clientScopes.del({
+     id: "scope-id",
+ });
+ ``` 
+
+
 ##### `function delByName(filter)`
 This method removes a client scope from the realm using its unique name. 
 It's an alternative to deleting by ID when the scope's name is known.
@@ -4389,11 +4432,46 @@ It's an alternative to deleting by ID when the scope's name is known.
     - name: [required] The name of the client scope to delete. This must match exactly with the registered name in the realm.
 ```js
  // cleanup client scopes
- keycloakAdapter.kcAdminClient.clientScopes.delByName({
+ await keycloakAdapter.kcAdminClient.clientScopes.delByName({
      name: "scope-name",
  });
  ```
 
+
+##### `function find(filter)`
+The method retrieves the list of client scopes defined in a realm.
+Client scopes represent a set of protocol mappers and roles that can be assigned to clients, either as default, optional, or manually added.
+
+@parameters:
+- filter: parameter provided as a JSON object that accepts the following filter:
+    - realm: [optional] The realm where client scopes are defined. 
+    - search: [optional] A search string to filter client scopes by name. 
+    - first: [optional] Index of the first result (for pagination). 
+    - max: [optional] Maximum number of results to return.
+```js
+ // Find client Scope
+const scope = await keycloakAdapter.kcAdminClient.clientScopes.find({
+     max: 10
+ });
+console.log("Search Result:",scope);
+ ```
+
+##### `function findOne(filter)`
+The method retrieves the details of a specific client scope in a realm by its unique identifier (ID).
+It’s useful when you need the full configuration of a particular client scope, including protocol mappers and assigned roles.
+
+@parameters:
+- filter: parameter provided as a JSON object that accepts the following filter:
+    - id: [required] The unique ID of the client scope.
+    - realm: [optional] The realm where the client scope is defined. 
+    
+```js
+ // Find one client Scope
+const scope = await keycloakAdapter.kcAdminClient.clientScopes.findOne({
+     id: 'my-scope-id'
+ });
+console.log("Search Result:",scope);
+ ```
 
 ##### `function findOneByName(filter)`
 The method is used to retrieve a specific client scope by its name. 
@@ -4404,12 +4482,1057 @@ including its ID, protocol, and other settings.
 - filter: parameter provided as a JSON object that accepts the following filter:
     - name: [required] The name of the client scope you're searching for.
 ```js
- // Find client Scope
-const scope = keycloakAdapter.kcAdminClient.clientScopes.findOneByName({
+ // Find client Scope by name
+const scope = await keycloakAdapter.kcAdminClient.clientScopes.findOneByName({
      name: "scope-name",
  });
 console.log("Search Result:",scope);
  ```
+
+
+##### `function listDefaultClientScopes(filter)`
+The method retrieves the list of default client scopes configured in a realm.
+Default client scopes are automatically assigned to newly created clients in that realm (for example, profile, email, roles).
+
+@parameters:
+- filter: parameter provided as a JSON object that accepts the following filter:
+    - realm: [optional] The realm where the client scopes are defined.
+    - first: [optional] Index of the first result (for pagination).
+    - max: [optional] Maximum number of results to return.
+```js
+ // list default client scopes
+const scopes = await keycloakAdapter.kcAdminClient.clientScopes.listDefaultClientScopes({
+     realm: "realm-name",
+ });
+console.log("Search Result:",scopes);
+ ```
+
+
+##### `function addDefaultClientScope(filter)`
+The method adds a client scope to the list of default client scopes of a realm in Keycloak.
+Default client scopes are automatically assigned to all newly created clients within the realm.
+
+@parameters:
+- filter: parameter provided as a JSON object that accepts the following filter:
+    - id: [required] The ID of the client scope to add as a default.
+    - realm: [optional] The realm where the client scopes are defined.
+```js
+ // add default client scope
+await keycloakAdapter.kcAdminClient.clientScopes.addDefaultClientScope({
+     id: "client-scope-id",
+ });
+
+ ```
+
+
+##### `function delDefaultClientScope(filter)`
+The method removes a client scope from the list of default client scopes of a realm in Keycloak.
+Default client scopes are automatically assigned to newly created clients in that realm. 
+Removing one prevents it from being included by default.
+
+@parameters:
+- filter: parameter provided as a JSON object that accepts the following filter:
+    - id: [required] The ID of the client scope to remove from the default list.
+    - realm:: [optional] The realm where the client scope is defined. 
+    
+```js
+ // delete default client Scope
+await keycloakAdapter.kcAdminClient.clientScopes.delDefaultClientScope({
+    realm: "myrealm-name",
+    id: "default-profile-scope-id",
+});
+
+console.log("Client scope removed from defaults");
+ ```
+
+
+##### `function listDefaultOptionalClientScopes(filter)`
+The method retrieves the list of default optional client scopes in a realm.
+Optional client scopes are available for clients to select but are not automatically applied when a new client is created.
+
+@parameters:
+- filter: parameter provided as a JSON object that accepts the following filter:
+    - realm:: [optional] The realm where the client scope is defined. 
+    
+```js
+ // list default optional client scopes
+const optionalScopes= await keycloakAdapter.kcAdminClient.clientScopes.listDefaultOptionalClientScopes({
+    realm: "myrealm-name",
+    id: "default-profile-scope-id",
+});
+
+
+console.log("Default optional client scopes:", optionalScopes);
+ ```
+
+##### `function addDefaultOptionalClientScope(filter)`
+The method adds a client scope to the list of default optional client scopes in a realm.
+Optional client scopes are available to clients for selection but are not automatically applied when a new client is created.
+
+@parameters:
+- filter: parameter provided as a JSON object that accepts the following filter:
+  - id: [required] The ID of the client scope to add as a default optional scope. 
+  - realm:: [optional] The realm where the client scope is defined. 
+    
+```js
+ // add default optional client scope
+await keycloakAdapter.kcAdminClient.clientScopes.addDefaultOptionalClientScope({
+    realm: "myrealm-name",
+    id: "default-profile-scope-id",
+});
+
+
+console.log("Client scope added to default optional scopes");
+ ```
+
+##### `function delDefaultOptionalClientScope(filter)`
+The method removes a client scope from the list of default optional client scopes of a realm in Keycloak.
+Optional client scopes are scopes that can be assigned to clients on demand. 
+By default, they are available to clients but not automatically applied unless explicitly selected. 
+Removing one prevents it from being listed as optional for new clients.
+
+@parameters:
+- filter: parameter provided as a JSON object that accepts the following filter:
+    - id: [required] The ID of the client scope to remove from the optional list.
+    - realm:: [optional] The realm where the client scope is defined. 
+    
+```js
+ // delete optional client Scope
+await keycloakAdapter.kcAdminClient.clientScopes.delDefaultOptionalClientScope({
+    realm: "myrealm-name",
+    id: "default-profile-scope-id",
+});
+
+console.log("Client scope removed from default optional scopes");
+ ```
+
+
+##### `function findProtocolMapperByName(filter)`
+The method retrieves a protocol mapper from a specific client scope by its name.
+Protocol mappers define how user attributes, roles, or other data are mapped into tokens (ID token, access token, or user info) in Keycloak.
+
+@parameters:
+- filter: parameter provided as a JSON object that accepts the following filter:
+  - id: [required] The ID of the client scope to search within.
+  - realm: [optional] The realm where the client scope is defined. 
+  - name: [optional] The name of the protocol mapper to find.
+    
+```js
+ // find protocol mapper by name
+const mapper= await keycloakAdapter.kcAdminClient.clientScopes.findProtocolMapperByName({
+    realm: "myrealm-name",
+    id: "mapper-id-protocol",
+    name: "username",
+});
+
+if (mapper) {
+    console.log("Found protocol mapper:", mapper);
+} else {
+    console.log("Protocol mapper not found");
+}
+```
+
+##### `function findProtocolMapper(filter)`
+The method retrieves a specific protocol mapper from a client scope in a realm, using its mapper ID.
+Protocol mappers define how user attributes, roles, or other information are mapped into tokens (ID token, access token, or user info) in Keycloak.
+
+@parameters:
+- filter: parameter provided as a JSON object that accepts the following filter:
+  - id: [required] The ID of the client scope containing the protocol mapper.
+  - mapperId: [required] The ID of the protocol mapper to retrieve.
+  - realm: [optional] The realm where the client scope is defined. 
+   
+```js
+ // find protocol mapper by name
+const mapper= await keycloakAdapter.kcAdminClient.clientScopes.findProtocolMapper({
+    realm: "myrealm-name",
+    id: "client-scope-id",
+    mapperId: "mapper-id-123",
+});
+
+if (mapper) {
+    console.log("Found protocol mapper:", mapper);
+} else {
+    console.log("Protocol mapper not found");
+}
+```
+
+
+##### `function findProtocolMappersByProtocol(filter)`
+The method retrieves all protocol mappers of a given protocol (e.g., openid-connect or saml) for a specific client scope in a realm.
+This is useful when you want to filter protocol mappers by the authentication protocol they are associated with.
+@parameters:
+- filter: parameter provided as a JSON object that accepts the following filter:
+  - id: [required] The ID of the client scope to search within.
+  - protocol: [required] The protocol to filter by (e.g., "openid-connect", "saml").
+  - realm: [optional] The realm where the client scope is defined.
+   
+```js
+ // find protocol mapper by protocol
+const mapper= await keycloakAdapter.kcAdminClient.clientScopes.findProtocolMappersByProtocol({
+    realm: "myrealm-name",
+    id: "client-scope-id",
+    protocol: "openid-connect",
+});
+
+if (mapper) {
+    console.log("Found protocol mapper:", mapper);
+} else {
+    console.log("Protocol mapper not found");
+}
+```
+
+
+##### `function delProtocolMapper(filter)`
+The method deletes a protocol mapper from a specific client scope in a realm.
+Protocol mappers define how user attributes, roles, or other information are mapped into tokens (ID token, access token, or user info) in Keycloak. 
+Deleting a mapper removes its configuration from the client scope.
+@parameters:
+- filter: parameter provided as a JSON object that accepts the following filter:
+  - id: [required] The ID of the client scope containing the protocol mapper.
+  - mapperId: [required] The ID of the protocol mapper to delete.
+  - realm: [optional] The realm where the client scope is defined.
+  
+```js
+ 
+// Del Protocol Mapper
+await keycloakAdapter.kcAdminClient.clientScopes.delProtocolMapper({
+    realm: "my-realm-id",
+    id: "client-id",
+    mapperId: "mapper-id-123",
+});
+
+console.log("Protocol mapper deleted successfully");
+```
+
+
+##### `function listProtocolMappers(filter)`
+The method retrieves all protocol mappers associated with a specific client scope in a realm.
+Protocol mappers define how user attributes, roles, or other data are mapped into tokens (ID token, access token, or user info) in Keycloak.
+@parameters:
+- filter: parameter provided as a JSON object that accepts the following filter:
+  - id: [required] The ID of the client scope to list protocol mappers from.
+  - realm: [optional] The realm where the client scope is defined.
+  
+```js
+ 
+// list protocol mapper
+const mappers= await keycloakAdapter.kcAdminClient.clientScopes.listProtocolMappers({
+    realm: "myrealm-name",
+    id: "mapper-id",
+});
+
+console.log("Protocol mappers for client scope:", mappers);
+```
+
+
+##### `function addMultipleProtocolMappers(filter,protocolMappers)`
+The method adds multiple protocol mappers to a specific client scope in a realm.
+Protocol mappers define how user attributes, roles, or other data are mapped into tokens (ID token, access token, or user info) in Keycloak. 
+With this method, you can configure several mappers in a single request.
+@parameters:
+- filter: parameter provided as a JSON object that accepts the following filter:
+  - id: [required] The ID of the client scope where the protocol mappers should be added.
+  - realm: [optional] The realm where the client scope is defined. 
+- protocolMappers: An array of protocol mapper definitions to add. 
+  - Each ProtocolMapperRepresentation typically includes:
+    - name: [required] The mapper’s name. 
+    - protocol: [required] Usually "openid-connect" or "saml". 
+    - protocolMapper: [required] The mapper type, e.g., "oidc-usermodel-property-mapper".
+    - config: [optional] Mapper-specific configuration (e.g., user attribute, claim name, JSON type).
+    - consentRequired: [optional] Whether user consent is required. 
+
+```js
+ 
+// add multiple protocol mappers
+await keycloakAdapter.kcAdminClient.clientScopes.addMultipleProtocolMappers(
+    { id: 'client-scope-id' }, 
+    [
+        {
+            name: "mapping-maps-mapper",
+            protocol: "openid-connect",
+            protocolMapper: "oidc-audience-mapper",
+        },
+        {
+            name: "email",
+            protocol: "openid-connect",
+            protocolMapper: "oidc-usermodel-property-mapper",
+            consentRequired: false,
+            config: {
+                "user.attribute": "email",
+                "claim.name": "email",
+                "jsonType.label": "String"
+            }
+        }
+    ]
+);
+
+console.log("Multiple protocol mappers added successfully");
+```
+
+
+
+
+##### `function addProtocolMapper(filter,protocolMapper)`
+The method adds a single protocol mapper to a specific client scope in a realm.
+Protocol mappers define how user attributes, roles, or other information are mapped into tokens (ID token, access token, or user info) in Keycloak.
+
+@parameters:
+- filter: parameter provided as a JSON object that accepts the following filter:
+  - id: [required] The ID of the client scope where the protocol mapper should be added.
+  - realm: [optional] The realm where the client scope is defined. 
+- protocolMapper: A protocol mapper definitions to add. 
+  - name: [required] The mapper’s name. 
+  - protocol: [required] Usually "openid-connect" or "saml". 
+  - protocolMapper: [required] The mapper type, e.g., "oidc-usermodel-property-mapper".
+  - config: [optional] Mapper-specific configuration (e.g., user attribute, claim name, JSON type).
+  - consentRequired: [optional] Whether user consent is required. 
+
+```js
+ 
+// add protocol mapper
+await keycloakAdapter.kcAdminClient.clientScopes.addProtocolMapper(
+    { id: 'client-scope-id' }, 
+   
+    {
+        name: "mapping-maps-mapper",
+        protocol: "openid-connect",
+        protocolMapper: "oidc-audience-mapper",
+        consentRequired: false,
+        config: {
+            "user.attribute": "email",
+            "claim.name": "email",
+            "jsonType.label": "String"
+        }
+    }
+   
+);
+
+console.log("Protocol mapper added successfully");
+```
+
+
+
+##### `function updateProtocolMapper(filter,protocolMapper)`
+The method updates an existing protocol mapper in a specific client scope of a realm.
+Protocol mappers define how user attributes, roles, or other information are mapped into tokens (ID token, access token, or user info). 
+With this method, you can modify an existing mapper’s configuration.
+
+@parameters:
+- filter: parameter provided as a JSON object that accepts the following filter:
+  - id: [required] The ID of the client scope where the protocol mapper should be updated.
+  - mapperId: [required] The ID of the protocol mapper to update.
+  - realm: [optional] The realm where the client scope is defined. 
+- protocolMapper: The updated definition of the protocol mapper. 
+  - name: [required] The mapper’s name. 
+  - protocol: [required] Usually "openid-connect" or "saml". 
+  - protocolMapper: [required] The mapper type, e.g., "oidc-usermodel-property-mapper".
+  - config: [optional] Mapper-specific configuration (e.g., user attribute, claim name, JSON type).
+  - consentRequired: [optional] Whether user consent is required. 
+
+```js
+ 
+// add protocol mapper
+await keycloakAdapter.kcAdminClient.clientScopes.updateProtocolMapper(
+    { id: 'client-scope-id' ,  mapperId: "mapper-id-123",}, 
+   
+    {
+        name: "mapping-maps-mapper",
+        protocol: "openid-connect",
+        protocolMapper: "oidc-audience-mapper",
+        consentRequired: false,
+        config: {
+            "user.attribute": "email",
+            "claim.name": "email",
+            "jsonType.label": "String"
+        }
+    }
+   
+);
+
+console.log("Protocol mapper updated successfully");
+```
+
+
+
+##### `function listScopeMappings(filter)`
+The method retrieves all scope mappings for a given client scope in a realm. 
+Scope mappings define which roles (from realm roles or client roles) are granted to a client scope. 
+These roles determine the permissions and access tokens issued for clients using this scope.
+@parameters:
+- filter: parameter provided as a JSON object that accepts the following filter:
+    - id: [required] The ID of the client scope to list scope mapping.
+    - realm: [optional] The realm where the client scope is defined.
+
+```js
+ 
+// list scope mapping
+const scopeMappings= await keycloakAdapter.kcAdminClient.clientScopes.listScopeMappings({
+    realm: "myrealm-name",
+    id: "client-scope-id",
+});
+
+
+console.log("Scope mappings:", scopeMappings);
+```
+
+
+##### `function listAvailableClientScopeMappings(filter)`
+The method retrieves the list of available client roles that can be mapped to a given client scope but are not yet assigned.
+This helps identify which roles from a specific client are still available to be added to the client scope.
+
+@parameters:
+- filter: parameter provided as a JSON object that accepts the following filter:
+    - id: [required] The ID of the client scope to list available scope mapping.
+    - client: [required] The client ID (client UUID or client identifier) from which to list available roles
+    - realm: [optional] The realm where the client scope is defined.
+
+```js
+ 
+// list available client scope mapping
+const availableRoles= await keycloakAdapter.kcAdminClient.clientScopes.listAvailableClientScopeMappings({
+    realm: "myrealm-name",
+    id: "client-scope-id",
+    client:'client-id'
+});
+
+
+
+console.log("Available client scope mappings:", availableRoles);
+```
+
+
+##### `function addClientScopeMappings(filter,roleRepresentation)`
+The method adds one or more client roles from a specific client to a given client scope in a realm.
+This means the client scope will include the selected roles, and any client using this scope will inherit these permissions in its tokens.
+
+@parameters:
+- filter: parameter provided as a JSON object that accepts the following filter:    
+  - id: [required] ID of the client scope. 
+  - client: [required] The client ID (client UUID or client identifier) whose roles are being mapped.
+  - realm : [optional] The realm where the client scope is defined.
+- RoleRepresentation: An array of role definitions to add. Each RoleRepresentation typically includes(or at least their id and/or name):
+  - id : [optional] The role ID. 
+  - name : [optional] The role name. 
+  - description: [optional] A description of the role. 
+  - clientRole: [optional]: Whether this role belongs to a client. 
+  - containerId: [optional] The ID of the client containing the role.
+
+```js
+ 
+// add client scope mapping
+const availableRoles= await keycloakAdapter.kcAdminClient.clientScopes.addClientScopeMappings(
+    {
+        realm: "myrealm-name",
+        id: "client-scope-id",
+        client: "client-id"
+    },
+    
+    [
+        {
+            id: "role-id-101",
+            name: "view-profile",
+            clientRole: true,
+            containerId: "account"
+        },
+        {
+            id: "role-id-102",
+            name: "manage-account",
+            clientRole: true,
+            containerId: "account"
+        }
+    ]
+);
+
+console.log("Client roles mapped to client scope successfully");
+```
+
+
+##### `function delClientScopeMappings(filter,roleRepresentation)`
+The method removes one or more client role mappings from a given client scope in a realm.
+This allows you to revoke previously assigned client roles so they are no longer included in the client scope.
+
+@parameters:
+- filter: parameter provided as a JSON object that accepts the following filter:    
+  - id: [required] ID of the client scope. 
+  - client: [required] The client ID (client UUID or client identifier) from which the roles are being removed.
+  - realm : [optional] The realm where the client scope is defined.
+- RoleRepresentation: An array of role objects (or at least their id and/or name) to be removed from the client scope.
+  - id : [optional] The role ID. 
+  - name : [optional] The role name. 
+  - description: [optional] A description of the role. 
+  - clientRole: [optional]: Whether this role belongs to a client. 
+  - containerId: [optional] The ID of the client containing the role.
+
+```js
+ 
+// add client scope mapping
+const availableRoles= await keycloakAdapter.kcAdminClient.clientScopes.delClientScopeMappings( 
+    {
+        realm: "myrealm-name",
+        id: "client-scope-id",
+        client: "client-id"
+    },
+    
+    [
+        {
+            id: "role-id-101",
+            name: "view-profile",
+            clientRole: true,
+            containerId: "account"
+        },
+        {
+            id: "role-id-102",
+            name: "manage-account",
+            clientRole: true,
+            containerId: "account"
+        }
+    ]
+);
+
+console.log("Roles removed from client scope mappings.");
+```
+
+
+##### `function listClientScopeMappings(filter)`
+The method retrieves all client roles from a specific client that are currently mapped to a given client scope in a realm.
+This allows you to check which roles from a particular client are already included in the client scope.
+
+@parameters:
+- filter: parameter provided as a JSON object that accepts the following filter: 
+  - id: [required] The ID of the client scope. 
+  - client: [required]: The client ID (client UUID or client identifier) whose mapped roles you want to list.
+  - realm: [optional] The realm where the client scope is defined.
+
+```js
+ 
+// list client scope mapping
+const mappedRoles= await keycloakAdapter.kcAdminClient.clientScopes.listClientScopeMappings({
+    realm: "myrealm-name",
+    id: "client-scope-id",
+    client: "client-id",
+});
+
+console.log("Mapped client roles:", mappedRoles);
+```
+
+
+
+##### `function listCompositeClientScopeMappings(filter)`
+The method retrieves all effective client roles mapped to a given client scope, including both directly assigned roles and those inherited via composite roles.
+This is useful when you want to see the final set of roles available in a client scope, not just the ones explicitly mapped.
+
+@parameters:
+- filter: parameter provided as a JSON object that accepts the following filter: 
+  - id: [required] The ID of the client scope. 
+  - client: [required]: The client ID (client UUID or client identifier) whose mapped roles you want to list.
+  - realm: [optional] The realm where the client scope is defined.
+
+```js
+ 
+// list client scope mapping
+const mappedRoles= await keycloakAdapter.kcAdminClient.clientScopes.listCompositeClientScopeMappings({
+    realm: "myrealm-name",
+    id: "client-scope-id",
+    client: "client-id",
+});
+
+console.log("Mapped client roles:", mappedRoles);
+```
+
+
+
+##### `function listAvailableRealmScopeMappings(filter)`
+The method retrieves the list of realm roles that are available to be mapped to a given client scope but are not yet assigned.
+This helps you determine which realm-level roles can still be added to the client scope.
+
+@parameters:
+- filter: parameter provided as a JSON object that accepts the following filter: 
+  - id: [required] The ID of the client scope.
+  - realm: [optional] The realm where the client scope is defined.
+
+```js
+ 
+// list available realm scope mappings
+const availableRealmRoles= await keycloakAdapter.kcAdminClient.clientScopes.listAvailableRealmScopeMappings({
+    realm: "myrealm-name",
+    id: "client-scope-id",
+});
+
+console.log("Available realm scope mappings:", availableRealmRoles);
+```
+
+
+
+##### `function addRealmScopeMappings(filter,RoleRepresentation)`
+The method adds one or more realm roles to a given client scope in a realm.
+This means that any client using this client scope will inherit the specified realm-level roles in its tokens.
+
+@parameters:
+- filter: parameter provided as a JSON object that accepts the following filter: 
+  - id: [required] The ID of the client scope.
+  - realm: [optional] The realm where the client scope is defined.
+- RoleRepresentation: An array of realm role objects to add. Each RoleRepresentation typically includes:
+  - id: [required] The role ID. 
+  - name: [required] The role name. 
+  - description: [optional] Description of the role. 
+  - clientRole: [optional] Should be false for realm roles. 
+  - containerId: [optional] The ID of the realm containing the role.
+
+```js
+ 
+// add realm scope mappings
+const availableRealmRoles= await keycloakAdapter.kcAdminClient.clientScopes.addRealmScopeMappings(
+    {
+        realm: "myrealm-name",
+        id: "client-scope-idb"
+    },
+    [
+        { id: "role-id-301", name: "offline_access", clientRole: false, containerId: "myrealm" },
+        { id: "role-id-302", name: "uma_authorization", clientRole: false, containerId: "myrealm" }
+    ]
+);
+
+console.log("Realm roles added to client scope successfully");
+```
+
+
+
+##### `function delRealmScopeMappings(filter,RoleRepresentation)`
+The method removes one or more realm role mappings from a given client scope in a realm.
+This revokes previously assigned realm roles, so clients using this scope will no longer inherit these permissions.
+
+@parameters:
+- filter: parameter provided as a JSON object that accepts the following filter: 
+  - id: [required] The ID of the client scope.
+  - realm: [optional] The realm where the client scope is defined.
+- RoleRepresentation: Each role should include at least its id and/or name
+  - id: [required] The role ID. 
+  - name: [required] The role name. 
+  - description: [optional] Description of the role. 
+  - clientRole: [optional] Should be false for realm roles. 
+  - containerId: [optional] The ID of the realm containing the role.
+
+```js
+ 
+// del realm scope mappings
+const availableRealmRoles= await keycloakAdapter.kcAdminClient.clientScopes.delRealmScopeMappings(
+    {
+        realm: "myrealm-name",
+        id: "client-scope-id"
+    },
+    [
+        { id: "role-id-301"},
+        { id: "role-id-302"}
+    ]
+);
+
+console.log("Realm roles added to client scope successfully");
+```
+
+
+
+##### `function listRealmScopeMappings(filter)`
+The method retrieves all realm roles that are currently mapped to a given client scope in a realm.
+This allows you to see which realm-level permissions are already assigned to the client scope.
+
+@parameters:
+- filter: parameter provided as a JSON object that accepts the following filter: 
+  - id: [required] The ID of the client scope.
+  - realm: [optional] The realm where the client scope is defined.
+
+```js
+ 
+// list realm scope mappings
+const mappedRealmRoles= await keycloakAdapter.kcAdminClient.clientScopes.listRealmScopeMappings({
+    realm: "myrealm-name",
+    id: "client-id-scope",
+});
+
+console.log("Mapped realm roles:", mappedRealmRoles);
+```
+
+
+##### `function listCompositeRealmScopeMappings(filter)`
+The method retrieves all effective realm roles mapped to a given client scope, including both directly assigned roles and those inherited via composite roles.
+This is useful to see the complete set of realm-level permissions a client scope provides.
+
+@parameters:
+- filter: parameter provided as a JSON object that accepts the following filter: 
+  - id: [required] The ID of the client scope.
+  - realm: [optional] The realm where the client scope is defined.
+
+```js
+ 
+// list composite realm scope mappings
+const mappedRealmRoles= await keycloakAdapter.kcAdminClient.clientScopes.listCompositeRealmScopeMappings({
+    realm: "myrealm-name",
+    id: "client-id-scope",
+});
+
+console.log("Mapped realm roles:", mappedRealmRoles);
+```
+
+
+
+
+### `entity identityProviders`
+identityProviders lets you manage Identity Providers (IdPs) configured in a realm.
+These are providers like Google, Facebook, GitHub, SAML, OIDC, etc.
+
+#### `entity identityProviders functions`
+
+##### `function identityProviders.create(identityProvidersRappresentation)`
+The method is used to create a new Identity Provider (IdP) in a Keycloak realm. 
+An IdP allows users to authenticate via external providers such as Google, Facebook, GitHub, 
+or another SAML/OIDC provider. 
+This method requires specifying an alias, the provider type, and configuration settings such as client ID, client secret, and any other provider-specific options.
+@parameters:
+- identityProvidersRappresentation: parameter provided as a JSON object containing the configuration of the Identity Provider
+    - alias: [required] Unique name for the IdP within the realm. 
+    - providerId: [required] Type of provider (google, facebook, oidc, saml, etc.). 
+    - enabled: [optional] Whether the IdP is enabled. Default is true. 
+    - displayName: [optional] Display name for the login page. 
+    - trustEmail: [optional] Whether to trust the email from the IdP. 
+    - storeToken: [optional] Whether to store the token from the IdP. 
+    - linkOnly: [optional] If true, the IdP can only link accounts. 
+    - firstBrokerLoginFlowAlias: [optional] Flow to use on first login. 
+    - config : [optional] Provider-specific configuration, e.g., client ID, client secret, endpoints, etc.
+```js
+ // create a gidentity provider
+ keycloakAdapter.kcAdminClient.identityProviders.create({
+    alias: "google",
+    providerId: "google",
+    enabled: true,
+    displayName: "Google Login",
+    trustEmail: true,
+    storeToken: false,
+    config: {
+        clientId: "GOOGLE_CLIENT_ID",
+        clientSecret: "GOOGLE_CLIENT_SECRET",
+        defaultScope: "openid email profile",
+    },
+});
+
+console.log("Created Identity Provider:", newIdP);
+ ```
+
+
+##### `function identityProviders.createMapper(mapperParams)`
+The method creates a new mapper for an existing Identity Provider in the current realm. 
+The mapper defines how attributes, roles, or claims from the Identity Provider are mapped to the Keycloak user model.
+@parameters:
+- mapperParams: parameter provided as a JSON object containing the fields to create a new mapper
+    - alias: [required] The alias of the Identity Provider to which the mapper will be attached. 
+    - identityProviderMapper: [required] The mapper configuration object, which includes details like the mapper type, name, and configuration values
+```js
+ // create a mapper
+ keycloakAdapter.kcAdminClient.identityProviders.createMapper({
+     alias: 'currentIdpAlias',
+     identityProviderMapper: {
+         name: "email-mapper",
+         identityProviderMapper: "oidc-user-attribute-idp-mapper",
+         config: {
+             "user.attribute": "email",
+             "claim": "email",
+             "syncMode": "INHERIT",
+         },
+     },
+ });
+
+ ```
+
+
+
+##### `function identityProviders.findMappers(filter)`
+The method retrieves all mappers associated with a specific Identity Provider in the current realm. 
+These mappers define how attributes, roles, or claims from the external Identity Provider are mapped to the Keycloak user model.
+@parameters:
+- filter: pparameter provided as a JSON object that accepts the following filter:
+    - alias: [required] TThe alias of the Identity Provider whose mappers you want to fetch.
+```js
+ // find a mapper
+ const  mappers= await keycloakAdapter.kcAdminClient.identityProviders.findMappers({
+     alias: 'currentIdpAlias',
+     
+ });
+
+
+console.log(mappers);
+
+ ```
+
+
+##### `function identityProviders.delMapper(filter)`
+The method deletes a specific mapper associated with an Identity Provider in the current realm. 
+This is useful when you need to remove a mapping rule that translates attributes, roles, or claims from the external Identity Provider into Keycloak.
+@parameters:
+- filter: pparameter provided as a JSON object that accepts the following filter:
+    - alias: [required] The alias of the Identity Provider that owns the mapper. 
+    - id : [required] The unique ID of the mapper to be deleted.
+```js
+ // delete a mapper
+ await keycloakAdapter.kcAdminClient.identityProviders.delMapper({
+     alias: 'currentIdpAlias',
+     id: 'mapperId'
+ });
+
+console.log("Mapper deleted successfully");
+```
+
+
+
+##### `function identityProviders.findOneMapper(filter)`
+The method retrieves the details of a specific mapper associated with an Identity Provider in the current realm. 
+This allows you to inspect a mapper’s configuration, such as how attributes or claims from the external Identity Provider are mapped into Keycloak.
+@parameters:
+- filter: pparameter provided as a JSON object that accepts the following filter:
+    - alias: [required] The alias of the Identity Provider. 
+    - id: [required] The unique ID of the mapper to retrieve.
+```js
+ // find a mapper
+ const  mapper= await keycloakAdapter.kcAdminClient.identityProviders.findOneMapper({
+     alias: 'currentIdpAlias',
+     id: 'mapperId'
+ });
+
+console.log("Mapper details:", mapper);
+```
+
+
+##### `function identityProviders.del(filter)`
+The method removes an Identity Provider from the current realm. 
+This action deletes the provider configuration, including all its associated mappers and settings. 
+After deletion, users will no longer be able to authenticate using that Identity Provider.
+@parameters:
+- filter: pparameter provided as a JSON object that accepts the following filter:
+    - alias: [required] The alias of the Identity Provider you want to delete.
+```js
+ // delete 
+ await keycloakAdapter.kcAdminClient.identityProviders.del({
+     alias: 'currentIdpAlias'
+ });
+
+console.log(`Identity Provider deleted successfully`);
+```
+
+
+##### `function identityProviders.findOne(filter)`
+The method retrieves the configuration details of a specific Identity Provider in the current realm. 
+It is useful when you need to inspect the provider’s settings, such as its alias, display name, authentication flow, or other configuration parameters.
+@parameters:
+- filter: pparameter provided as a JSON object that accepts the following filter:
+    - alias: [required] The alias of the Identity Provider you want to find.
+```js
+ // find one 
+ const  idp= await keycloakAdapter.kcAdminClient.identityProviders.findOne({
+     alias: 'currentIdpAlias'
+ });
+
+if (idp) {
+    console.log("Identity Provider details:", idp);
+} else {
+    console.log(`Identity Provider with alias currentIdpAlias not found`);
+}
+```
+
+
+##### `function identityProviders.find()`
+The method retrieves a list of all configured Identity Providers in the current realm. 
+It allows you to see which providers (e.g., Google, GitHub, SAML, etc.) are available and get their basic configuration details.
+
+```js
+ // find 
+ const  provider= await keycloakAdapter.kcAdminClient.identityProviders.find();
+
+console.log("Configured Identity Providers:");
+providers.forEach((provider) => {
+    console.log(`Alias: ${provider.alias}, Provider ID: ${provider.providerId}`);
+});
+```
+
+
+##### `function identityProviders.update(filter,identityProviderRepresentation)`
+The method updates the configuration of a specific Identity Provider in the current realm. 
+It allows you to modify settings such as client ID, secret, authorization URLs, or any custom configuration fields exposed by the provider.
+@parameters:
+- filter: pparameter provided as a JSON object that accepts the following filter:
+    - alias: [required] The alias of the Identity Provider to update. 
+- identityProviderRepresentation: An object containing the updated configuration fields:
+  - alias: [required] The alias of the Identity Provider. 
+  - providerId: [required] The provider type (e.g., "google", "saml"). 
+  - Other optional fields like displayName, config object, etc.
+```js
+ // update one 
+ await keycloakAdapter.kcAdminClient.identityProviders.update(
+     { alias: 'currentIdpAlias' },
+     {
+         // alias and providerId are required to update
+        alias: 'idp.alias',
+        providerId: 'idp.providerId',
+        displayName: "test",
+    }
+);
+```
+
+
+##### `function identityProviders.findFactory(filter)`
+The method retrieves information about a specific Identity Provider factory available in Keycloak. 
+A factory represents a provider type (e.g., "oidc", "saml", "github") and contains metadata about how that provider can be configured. 
+This is useful when you want to check what configuration options are supported before creating or updating an Identity Provider.
+@parameters:
+- filter: pparameter provided as a JSON object that accepts the following filter:
+  - providerId: [required] The ID of the Identity Provider factory to look up (e.g., "oidc", "saml", "google").
+```js
+ // find factory 
+ const factory= await keycloakAdapter.kcAdminClient.identityProviders.findFactory({
+     providerId: "oidc",
+ });
+
+console.log("Factory details:", factory);
+```
+
+
+
+
+##### `function identityProviders.findMappers(filter)`
+The method retrieves all mappers associated with a specific Identity Provider in Keycloak. 
+Mappers define how information from the external Identity Provider (e.g., Google, SAML, GitHub) is mapped into Keycloak attributes, roles, or claims. 
+This is useful to list all transformations and mappings applied to users authenticating via that provider.
+@parameters:
+- filter: parameter provided as a JSON object that accepts the following filter:
+  - alias: [required] The alias of the Identity Provider (set when the provider was created).
+```js
+ // find one 
+ const mappers= await keycloakAdapter.kcAdminClient.identityProviders.findMappers({
+     alias: "google",
+ });
+
+console.log("Mappers for Google IdP:", mappers);
+```
+
+
+##### `function identityProviders.findOneMapper(filter)`
+The method retrieves a single mapper associated with a specific Identity Provider in Keycloak.
+It’s useful when you need to inspect the configuration of a mapper before updating or deleting it.
+@parameters:
+- filter: parameter provided as a JSON object that accepts the following filter:
+  - alias: [required] The alias of the Identity Provider. 
+  - id: [required] The unique ID of the mapper to fetch.
+```js
+ // find one 
+ const mapper= await keycloakAdapter.kcAdminClient.identityProviders.findOneMapper({
+     alias: "google",
+     id: "1234-abcd-5678-efgh",
+ });
+
+if (mapper) {
+    console.log("Mapper found:", mapper);
+} else {
+    console.log("Mapper not found");
+}
+```
+
+
+##### `function identityProviders.updateMapper(filter,mapperRepresentation)`
+The method updates an existing mapper for a given Identity Provider in Keycloak.
+Mappers define how attributes, roles, or claims from an external Identity Provider (e.g., Google, GitHub, SAML) are mapped into Keycloak user attributes or tokens.
+This method allows you to change the configuration of an existing mapper (e.g., modify the claim name, attribute name, or role assignment).
+@parameters:
+- filter: parameter provided as a JSON object that accepts the following filter:
+    - alias: [required] The alias of the Identity Provider (set during IdP creation). 
+    - id: [required] The ID of the mapper to update. 
+- mapperRepresentation: parameter provided as a JSON object that represent the updated mapper configuration object. 
+  - id : [optional] The mapper ID.
+  - name: [optional] The mapper name. 
+  - identityProviderAlias: [optional] The IdP alias. 
+  - identityProviderMapper: [optional] The type of mapper (e.g., "oidc-user-attribute-idp-mapper"). 
+  - config: [optional] The new mapping configuration.
+```js
+ // update one Mapper
+ const mappers= await keycloakAdapter.kcAdminClient.identityProviders.updateMapper(
+     {
+         alias: "google",
+         id: "1234-abcd-5678-efgh", // Mapper ID
+     },
+     {
+         id: "1234-abcd-5678-efgh",
+         name: "Updated Google Mapper",
+         identityProviderAlias: "google",
+         identityProviderMapper: "oidc-user-attribute-idp-mapper",
+         config: {
+             "claim": "email",
+             "user.attribute": "updatedEmail",
+         },
+     }
+ );
+
+console.log("Mapper updated successfully!");
+```
+
+
+
+##### `function identityProviders.importFromUrl(filter,mapperRepresentation)`
+The method lets you import an Identity Provider configuration directly from a metadata URL (e.g., OIDC discovery document or SAML metadata XML).
+This saves you from manually entering configuration details, since Keycloak can auto-fill them from the provided URL.
+@parameters:
+- filter: parameter provided as a JSON object that accepts the following filter:
+  - fromUrl : [required] The URL of the IdP metadata (OIDC discovery endpoint or SAML metadata). 
+  - providerId : [required]The type of IdP (e.g., "oidc", "saml"). 
+  - trustEmail: [optional] Whether to automatically trust emails from this IdP. 
+  - alias: [optional] Alias for the Identity Provider (unique name).
+```js
+ // import one Mapper
+ const mappers= await keycloakAdapter.kcAdminClient.identityProviders.importFromUrl({
+     fromUrl: "https://accounts.google.com/.well-known/openid-configuration",
+     providerId: "oidc",
+     alias: "google",
+     trustEmail: true,
+ });
+
+console.log("Imported IdP:", importedIdp);
+```
+
+
+##### `function identityProviders.updatePermission(filter,permissionRepresentation)`
+The method allows you to enable or disable fine-grained admin permissions for a specific Identity Provider in Keycloak.
+When enabled, Keycloak creates client roles (scopes) that let you define which users or groups can view or manage the Identity Provider.
+@parameters:
+- filter: parameter provided as a JSON object that accepts the following filter: 
+  - alias: [required] The alias of the Identity Provider. 
+- permissionRepresentation: parameter provided as a JSON object that represent the updated permission object.
+  - enabled: [optional] true to enable permissions, false to disable. 
+  - realm: [optional] The realm where the IdP is defined.
+  - other permisssion fields
+```js
+ // import one permission
+ const updatedPermissions= await keycloakAdapter.kcAdminClient.identityProviders.updatePermission(
+     { alias: "google"},
+     { enabled: true }
+ );
+
+console.log("Updated permission:", updatedPermissions);
+```
+
+
+##### `function identityProviders.listPermissions(filter)`
+The method retrieves the current fine-grained permission settings for a specific Identity Provider in Keycloak.
+It returns whether permissions are enabled and, if so, which scope roles are associated with managing and viewing the Identity Provider.
+@parameters:
+- filter: parameter provided as a JSON object that accepts the following filter: 
+  - alias: [required] The alias of the Identity Provider. 
+  - realm: [optional] The realm where the IdP is defined.
+```js
+ // import one permission
+ const permissions= await keycloakAdapter.kcAdminClient.identityProviders.listPermissions({
+     alias: "google",
+     realm: "myrealm",
+ });
+
+console.log("Current permissions:", permissions);
+```
+
+
 
 
 ### `entity groups`
